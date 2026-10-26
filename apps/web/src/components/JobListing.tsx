@@ -4,16 +4,22 @@ import { Link } from "react-router-dom";
 import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS, type Job } from "@fredericton-grad-jobs/shared";
 import { truncateDescription } from "@/lib/truncateDescription";
 import { formatSalary } from "@/lib/formatSalary";
+import { descriptionText } from "@/lib/description";
 
 type JobListingProps = {
     job: Job;
 };
 
+// Expanded cards stop here; the job page shows the full description.
+const EXPANDED_LENGTH = 500;
+
 const JobListing = ({job}: JobListingProps) => {
     const [showFullDescription, setShowFullDescription] = useState(false);
-    const preview = truncateDescription(job.description);
+    // Imported jobs have HTML descriptions; cards show plain text.
+    const text = descriptionText(job);
+    const preview = truncateDescription(text);
     const isLong = preview.truncated;
-    const description = showFullDescription ? job.description : preview.text;
+    const description = showFullDescription ? truncateDescription(text, EXPANDED_LENGTH).text : preview.text;
   return (
      <div className="bg-white rounded-xl shadow-md relative">
                     <div className="p-4">

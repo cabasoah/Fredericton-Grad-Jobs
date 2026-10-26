@@ -3,3 +3,28 @@
 body {
     padding: auto;
 }
+
+/* Imported (HTML) job descriptions. Tailwind's reset removes list bullets
+   and heading sizes, so restore readable defaults for this content only. */
+.job-description {
+    @apply space-y-3 break-words;
+}
+.job-description h2 {
+    @apply text-xl font-bold mt-6;
+}
+.job-description h3,
+.job-description h4 {
+    @apply text-lg font-semibold mt-5;
+}
+.job-description ul {
+    @apply list-disc pl-6 space-y-1;
+}
+.job-description ol {
+    @apply list-decimal pl-6 space-y-1;
+}
+.job-description a {
+    @apply text-indigo-600 underline;
+}
+.job-description blockquote {
+    @apply border-l-4 border-indigo-200 pl-4 italic;
+}

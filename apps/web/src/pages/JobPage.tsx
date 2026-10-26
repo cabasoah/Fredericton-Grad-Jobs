@@ -3,6 +3,7 @@ import { FaArrowLeft, FaExternalLinkAlt, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS } from '@fredericton-grad-jobs/shared';
 import { useAuth } from '@/auth/AuthContext';
+import { isHtmlDescription, safeDescriptionHtml } from '@/lib/description';
 import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { formatSalaryRange } from '@/lib/formatSalary';
 import { canManageJob } from '@/lib/permissions';
@@ -87,9 +88,17 @@ const JobPage = () => {
                     Job Description
                 </h3>
 
-                <p className="mb-4 whitespace-pre-line">
-                    {jobData.description}
-                </p>
+                {isHtmlDescription(jobData) ? (
+                    // Imported posting: HTML sanitized by the API and again here.
+                    <div
+                        className="job-description mb-4"
+                        dangerouslySetInnerHTML={{ __html: safeDescriptionHtml(jobData.description) }}
+                    />
+                ) : (
+                    <p className="mb-4 whitespace-pre-line">
+                        {jobData.description}
+                    </p>
+                )}
 
                 <h3 className="text-indigo-800 text-lg font-bold mb-2">Salary</h3>
 
