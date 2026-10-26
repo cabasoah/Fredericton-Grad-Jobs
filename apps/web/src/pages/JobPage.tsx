@@ -3,6 +3,7 @@ import { useLoaderData, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { jobLoader } from '@/loaders/jobLoader';
+import { API_URL } from '@/config';
 
 const JobPage = () => {
     const jobData = useLoaderData<typeof jobLoader>();
@@ -16,7 +17,7 @@ const JobPage = () => {
         setDeleting(true);
         setDeleteError("");
         try {
-            const res = await fetch(`/api/jobs/${jobData.id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/jobs/${jobData.id}`, { method: 'DELETE' });
             if (!res.ok) {
                 throw new Error(`Request failed with status ${res.status}`);
             }

@@ -1,6 +1,7 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
 import type { JobInput } from "@fredericton-grad-jobs/shared";
 import JobForm from "@/components/JobForm";
+import { API_URL } from "@/config";
 import type { jobLoader } from "@/loaders/jobLoader";
 
 const EditJobPage = () => {
@@ -8,7 +9,7 @@ const EditJobPage = () => {
     const navigate = useNavigate();
 
     const updateJob = async (updatedJob: JobInput) => {
-      const res = await fetch(`/api/jobs/${job.id}`, {
+      const res = await fetch(`${API_URL}/jobs/${job.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...updatedJob, id: job.id }),

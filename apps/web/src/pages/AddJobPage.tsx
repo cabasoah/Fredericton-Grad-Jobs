@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { JobSchema, type JobInput } from "@fredericton-grad-jobs/shared";
 import JobForm from "@/components/JobForm";
+import { API_URL } from "@/config";
 
 const AddJobPage = () => {
     const navigate = useNavigate();
 
     const addJob = async (newJob: JobInput) => {
-      const res = await fetch("/api/jobs", {
+      const res = await fetch(`${API_URL}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newJob),

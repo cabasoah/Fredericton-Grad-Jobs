@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from 'react-router-dom';
 import { JobSchema, type Job } from '@fredericton-grad-jobs/shared';
+import { API_URL } from '@/config';
 
 // Loads a single job for /jobs/:id and /edit-job/:id. Failures are thrown as
 // Responses so the route's errorElement can tell a 404 from other errors.
@@ -7,7 +8,7 @@ export const jobLoader = async ({ params }: LoaderFunctionArgs): Promise<Job> =>
     if (!params.id) {
         throw new Response('Job not found', { status: 404, statusText: 'Not Found' });
     }
-    const res = await fetch('/api/jobs/' + params.id);
+    const res = await fetch(`${API_URL}/jobs/${params.id}`);
     if (res.status === 404) {
         throw new Response('Job not found', { status: 404, statusText: 'Not Found' });
     }
