@@ -132,7 +132,7 @@ describe("POST /api/v1/auth/login", () => {
     }
   });
 
-  it("rate-limits failed attempts per email, across IPs", async () => {
+  it("rate-limits failed attempts per email, even below the per-IP limit", async () => {
     const limited = createTestApp({
       db,
       loginRateLimit: {
