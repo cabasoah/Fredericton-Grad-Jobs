@@ -4,12 +4,13 @@ import { Link } from "react-router-dom";
 const JobListing = ({job}) => {
     const [showFullDescription, setShowFullDescription] = useState(false);
     let description = job.description;
+    const isLong = description.length > 90;
 
-    if(!showFullDescription){
+    if(isLong && !showFullDescription){
         description = description.substring(0,90) + '...';
     }
   return (
-     <div key={job.id} className="bg-white rounded-xl shadow-md relative">
+     <div className="bg-white rounded-xl shadow-md relative">
                     <div className="p-4">
                         <div className="mb-6">
                         <div className="text-gray-600 my-2">{job.type}</div>
@@ -19,9 +20,11 @@ const JobListing = ({job}) => {
                         <div className="mb-5">
                             {description}
                         </div>
-                        <button onClick={() => setShowFullDescription((prevState) => !prevState)} className="text-indigo-500 mb-5 hover:text-indigo-600">
-                            {showFullDescription ? "Less" : "More"}
-                        </button>
+                        {isLong && (
+                            <button onClick={() => setShowFullDescription((prevState) => !prevState)} className="text-indigo-500 mb-5 hover:text-indigo-600">
+                                {showFullDescription ? "Less" : "More"}
+                            </button>
+                        )}
 
                         <h3 className="text-indigo-500 mb-2">{job.salary} / Year</h3>
 
