@@ -9,6 +9,7 @@ import {
 import type { Job, JobCreateInput, JobListResponse, JobUpdate } from "@fredericton-grad-jobs/shared";
 import { api, ApiError, type JobFilters } from "@/lib/api";
 import { useToast } from "@/toast/ToastContext";
+import { statsKey } from "./stats";
 
 // Query keys: ["jobs", "list", {filters, limit}] and ["jobs", "detail", id].
 // Invalidating ["jobs", "list"] refreshes every list, whatever its filters.
@@ -49,7 +50,10 @@ export const useCreateJob = () => {
     onSuccess: (job) => {
       queryClient.setQueryData(jobKeys.detail(job.id), job);
       showToast("success", `"${job.title}" was posted.`);
-      return queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: statsKey }),
+      ]);
     },
     onError: (err) => showToast("error", errorMessage(err, "Could not post the job.")),
   });
@@ -63,7 +67,10 @@ export const useUpdateJob = () => {
     onSuccess: (job) => {
       queryClient.setQueryData(jobKeys.detail(job.id), job);
       showToast("success", `"${job.title}" was updated.`);
-      return queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: statsKey }),
+      ]);
     },
     onError: (err) => showToast("error", errorMessage(err, "Could not update the job.")),
   });
@@ -105,6 +112,10 @@ export const useDeleteJob = () => {
       queryClient.removeQueries({ queryKey: jobKeys.detail(job.id) });
       showToast("success", `"${job.title}" was deleted.`);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: jobKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: statsKey }),
+      ]),
   });
 };

@@ -7,6 +7,7 @@ import {
   JobUpdateSchema,
   LoginSchema,
   RegisterSchema,
+  StatsSchema,
   type JobCreateInput,
   type JobSort,
   type JobType,
@@ -101,6 +102,8 @@ export const api = {
   deleteJob: async (id: string) => {
     await apiFetch(jobPath(id), { method: "DELETE" });
   },
+
+  getStats: async () => StatsSchema.parse(await apiFetch("/stats")),
 
   me: async () => AuthResponseSchema.parse(await apiFetch("/auth/me")).user,
   login: async (input: LoginInput) =>

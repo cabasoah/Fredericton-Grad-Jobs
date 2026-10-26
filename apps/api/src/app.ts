@@ -20,6 +20,7 @@ import { authRouter } from "./routes/auth";
 import { companiesRouter } from "./routes/companies";
 import { healthRouter } from "./routes/health";
 import { jobsRouter } from "./routes/jobs";
+import { statsRouter } from "./routes/stats";
 
 export type AppOptions = {
   db: Db;
@@ -62,6 +63,7 @@ export const createApp = ({
   v1.use("/auth", authRouter(db, session, createLoginRateLimiters(loginRateLimit)));
   v1.use("/jobs", jobsRouter(db, session, writeLimiter));
   v1.use("/companies", companiesRouter(db));
+  v1.use("/stats", statsRouter(db));
   app.use("/api/v1", v1);
 
   app.use((req, _res, next) => {
