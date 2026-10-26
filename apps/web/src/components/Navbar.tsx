@@ -1,8 +1,20 @@
 import logo from '@/assets/images/logo.png';
-import{NavLink} from 'react-router-dom';
+import{NavLink, useNavigate} from 'react-router-dom';
+import { useAuth } from '@/auth/AuthContext';
 
 const Navbar = () => {
+  const { status, user, logout } = useAuth();
+  const navigate = useNavigate();
   const linkClass = ({isActive}: {isActive: boolean}) => isActive ? "bg-black text-white hover:bg-gray-900 hover:text-white rounded-md px-3 py-2" : "text-white hover:bg-gray-900 hover:text-white rounded-md px-3 py-2"
+
+  const onLogout = async () => {
+    try {
+      await logout();
+      void navigate('/');
+    } catch (err) {
+      console.error('Error signing out', err);
+    }
+  };
   return (
       <nav className="bg-indigo-700 border-b border-indigo-500">
         <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -21,7 +33,7 @@ const Navbar = () => {
                 >
               </NavLink>
               <div className="md:ml-auto">
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
                   <NavLink
                     to="/"
                     className={linkClass}
@@ -30,10 +42,27 @@ const Navbar = () => {
                     to="/jobs"
                      className={linkClass}
                     >Jobs</NavLink>
-                  <NavLink
-                    to="/add-job"
-                     className={linkClass}
-                    >Add Job</NavLink>
+                  {/* Only employers can post; signed-out visitors are sent to log in. */}
+                  {(!user || user.role === 'EMPLOYER') && (
+                    <NavLink
+                      to="/add-job"
+                       className={linkClass}
+                      >Add Job</NavLink>
+                  )}
+                  {status === 'ready' && (user ? (
+                    <>
+                      <span className="hidden sm:inline text-indigo-100 px-2">{user.name}</span>
+                      <button
+                        onClick={() => void onLogout()}
+                        className="text-white hover:bg-gray-900 rounded-md px-3 py-2"
+                        >Logout</button>
+                    </>
+                  ) : (
+                    <>
+                      <NavLink to="/login" className={linkClass}>Login</NavLink>
+                      <NavLink to="/register" className={linkClass}>Register</NavLink>
+                    </>
+                  ))}
                 </div>
               </div>
             </div>

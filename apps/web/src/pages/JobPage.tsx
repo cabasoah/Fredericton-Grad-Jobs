@@ -4,11 +4,15 @@ import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS } from '@fredericton-grad-jobs/shared';
 import type { jobLoader } from '@/loaders/jobLoader';
+import { useAuth } from '@/auth/AuthContext';
 import { apiFetch } from '@/lib/api';
 import { formatSalary } from '@/lib/formatSalary';
+import { canManageJob } from '@/lib/permissions';
 
 const JobPage = () => {
     const jobData = useLoaderData<typeof jobLoader>();
+    const { user } = useAuth();
+    const canManage = canManageJob(user, jobData);
     const navigate = useNavigate();
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState("");
@@ -100,7 +104,8 @@ const JobPage = () => {
                 <p className="my-2 bg-indigo-100 p-2 font-bold">{jobData.company.contactPhone ?? 'Not provided'}</p>
                 </div>
 
-                {/* <!-- Manage --> */}
+                {/* <!-- Manage: only for the employer who posted the job --> */}
+                {canManage && (
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                 <h3 className="text-xl font-bold mb-6">Manage Job</h3>
                 <Link
@@ -118,6 +123,7 @@ const JobPage = () => {
                     <p className="text-red-600 mt-4" role="alert">{deleteError}</p>
                 )}
                 </div>
+                )}
             </aside>
             </div>
         </div>

@@ -31,8 +31,9 @@ const toApiError = async (res: Response): Promise<ApiError> => {
 
 // Fetches an API path (e.g. "/jobs") and returns the parsed JSON body, or
 // undefined for 204 responses. Throws ApiError for non-2xx responses.
+// credentials: "include" sends the httpOnly session cookie to the API.
 export const apiFetch = async (path: string, init?: RequestInit): Promise<unknown> => {
-  const res = await fetch(`${API_URL}${path}`, init);
+  const res = await fetch(`${API_URL}${path}`, { ...init, credentials: "include" });
   if (!res.ok) throw await toApiError(res);
   if (res.status === 204) return undefined;
   const body: unknown = await res.json();

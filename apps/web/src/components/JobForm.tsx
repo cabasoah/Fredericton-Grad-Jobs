@@ -5,7 +5,6 @@ import {
   JOB_TYPES,
   REMOTE_TYPE_LABELS,
   REMOTE_TYPES,
-  type CompanyInput,
   type Job,
   type JobType,
   type RemoteType,
@@ -32,17 +31,18 @@ type JobFormProps = {
   heading: string;
   submitLabel: string;
   submittingLabel: string;
-  // Edit mode: prefill from this job and show its company read-only.
+  // The company the job is posted for (the employer's own company).
+  companyName: string;
+  // Edit mode: prefill from this job.
   initialJob?: Job;
-  // company is only set when adding a job. Should throw if the save fails;
-  // ZodError and ApiError details are shown under the form.
-  onSubmit: (fields: JobFormFields, company?: CompanyInput) => Promise<void>;
+  // Should throw if the save fails; ZodError and ApiError details are shown
+  // under the form.
+  onSubmit: (fields: JobFormFields) => Promise<void>;
 };
 
 const toAmount = (value: string) => (value.trim() === "" ? null : Number(value));
-const optionalText = (value: string) => (value.trim() === "" ? undefined : value.trim());
 
-const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }: JobFormProps) => {
+const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJob, onSubmit }: JobFormProps) => {
     const [title, setTitle] = useState(initialJob?.title ?? "");
     const [description, setDescription] = useState(initialJob?.description ?? "");
     const [location, setLocation] = useState(initialJob?.location ?? "");
@@ -52,11 +52,6 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
     const [salaryMax, setSalaryMax] = useState(initialJob?.salaryMax?.toString() ?? "");
     const [currency, setCurrency] = useState<string>(initialJob?.currency ?? "CAD");
     const [tags, setTags] = useState(initialJob?.tags.join(", ") ?? "");
-    const [companyName, setCompanyName] = useState("");
-    const [companyDescription, setCompanyDescription] = useState("");
-    const [companyWebsite, setCompanyWebsite] = useState("");
-    const [contactEmail, setContactEmail] = useState("");
-    const [contactPhone, setContactPhone] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<{ message: string; details: string[] } | null>(null);
 
@@ -79,18 +74,8 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
         currency,
         tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
       };
-      const company: CompanyInput | undefined = initialJob
-        ? undefined
-        : {
-            name: companyName.trim(),
-            description: optionalText(companyDescription),
-            website: optionalText(companyWebsite),
-            contactEmail: optionalText(contactEmail),
-            contactPhone: optionalText(contactPhone),
-          };
-
       try {
-        await onSubmit(fields, company);
+        await onSubmit(fields);
       } catch (err) {
         console.error("Error saving job", err);
         setError(describeError(err));
@@ -253,100 +238,14 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
               />
             </div>
 
-            <h3 className="text-2xl mb-5">Company Info</h3>
-
-            {initialJob ? (
-              <div className="mb-4">
-                <p className="font-bold">{initialJob.company.name}</p>
-                <p className="text-gray-600 text-sm">
-                  Company details can't be changed from this form yet.
-                </p>
-              </div>
-            ) : (
-              <>
-            <div className="mb-4">
-              <label htmlFor="company" className="block text-gray-700 font-bold mb-2"
-                >Company Name</label
-              >
-              <input
-                type="text"
-                id="company"
-                name="company"
-                className="border rounded w-full py-2 px-3"
-                placeholder="Company Name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
-              />
+            <div className="mb-6 bg-indigo-50 rounded p-3">
+              <p className="text-gray-700">
+                Posting as <span className="font-bold">{companyName}</span>
+              </p>
+              <p className="text-gray-600 text-sm">
+                Jobs are always posted for your own company.
+              </p>
             </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="company_description"
-                className="block text-gray-700 font-bold mb-2"
-                >Company Description</label
-              >
-              <textarea
-                id="company_description"
-                name="company_description"
-                className="border rounded w-full py-2 px-3"
-                rows={4}
-                placeholder="What does your company do?"
-                value={companyDescription}
-                onChange={(e) => setCompanyDescription(e.target.value)}
-              ></textarea>
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="company_website" className="block text-gray-700 font-bold mb-2"
-                >Company Website</label
-              >
-              <input
-                type="url"
-                id="company_website"
-                name="company_website"
-                className="border rounded w-full py-2 px-3"
-                placeholder="Optional, eg. https://example.com"
-                value={companyWebsite}
-                onChange={(e) => setCompanyWebsite(e.target.value)}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label
-                htmlFor="contact_email"
-                className="block text-gray-700 font-bold mb-2"
-                >Contact Email</label
-              >
-              <input
-                type="email"
-                id="contact_email"
-                name="contact_email"
-                className="border rounded w-full py-2 px-3"
-                placeholder="Email address for applicants"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label
-                htmlFor="contact_phone"
-                className="block text-gray-700 font-bold mb-2"
-                >Contact Phone</label
-              >
-              <input
-                type="tel"
-                id="contact_phone"
-                name="contact_phone"
-                className="border rounded w-full py-2 px-3"
-                placeholder="Optional phone for applicants"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-              />
-            </div>
-              </>
-            )}
 
             {error && (
               <div className="text-red-600 mb-4" role="alert">
