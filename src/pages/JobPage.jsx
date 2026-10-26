@@ -128,6 +128,12 @@ const JobPage = () => {
 // Data loader function to fetch job data
 const JobLoader = async({params}) => {
     const res = await fetch('/api/jobs/' + params.id);
+    if (res.status === 404) {
+        throw new Response('Job not found', { status: 404, statusText: 'Not Found' });
+    }
+    if (!res.ok) {
+        throw new Response('Failed to load job', { status: res.status, statusText: res.statusText });
+    }
     const data = await res.json();
     return data;
 };

@@ -9,16 +9,17 @@ import NotFoundPage from "./pages/NotFoundPage";
 import JobPage, {JobLoader} from "./pages/JobPage";
 import AddJobPage from "./pages/AddJobPage";
 import EditJobPage from "./pages/EditJobPage";
+import ErrorPage from "./pages/ErrorPage";
 
 // Create Router
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path="/" element={<MainLayout/>}>
+    <Route path="/" element={<MainLayout/>} errorElement={<ErrorPage/>}>
       <Route index element={<HomePage/> }/>
       <Route path="/jobs" element={<JobsPage/> }/>
-      <Route path="/jobs/:id" element={<JobPage/> } loader = {JobLoader}/>
+      <Route path="/jobs/:id" element={<JobPage/> } loader = {JobLoader} errorElement={<ErrorPage/>}/>
       <Route path="/add-job" element={<AddJobPage/> }/>
-      <Route path="/edit-job/:id" element={<EditJobPage/> } loader = {JobLoader}/>
+      <Route path="/edit-job/:id" element={<EditJobPage/> } loader = {JobLoader} errorElement={<ErrorPage/>}/>
       <Route path="*" element={<NotFoundPage/> }/>
     </Route>
   )
