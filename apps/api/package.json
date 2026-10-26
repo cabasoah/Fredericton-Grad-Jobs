@@ -1,0 +1,7 @@
+{
+  "name": "@react-dev/api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Placeholder for the Express + TypeScript API (next phase).",
+  "type": "module"
+}
