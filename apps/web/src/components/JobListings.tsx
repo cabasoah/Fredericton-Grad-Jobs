@@ -1,5 +1,5 @@
 import { useState,useEffect } from 'react';
-import { JobListSchema, type Job } from '@react-dev/shared';
+import { JobListSchema, type Job } from '@fredericton-grad-jobs/shared';
 import JobListing from './JobListing';
 import Spinner from './Spinner';
 

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import {FaMapMarker} from "react-icons/fa"
 import { Link } from "react-router-dom";
-import type { Job } from "@react-dev/shared";
+import type { Job } from "@fredericton-grad-jobs/shared";
 
 type JobListingProps = {
     job: Job;

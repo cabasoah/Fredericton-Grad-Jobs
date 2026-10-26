@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { JobSchema, type JobInput } from "@react-dev/shared";
+import { JobSchema, type JobInput } from "@fredericton-grad-jobs/shared";
 import JobForm from "@/components/JobForm";
 
 const AddJobPage = () => {

@@ -1,5 +1,5 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
-import type { JobInput } from "@react-dev/shared";
+import type { JobInput } from "@fredericton-grad-jobs/shared";
 import JobForm from "@/components/JobForm";
 import type { jobLoader } from "@/loaders/jobLoader";
 

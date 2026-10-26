@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from 'react-router-dom';
-import { JobSchema, type Job } from '@react-dev/shared';
+import { JobSchema, type Job } from '@fredericton-grad-jobs/shared';
 
 // Loads a single job for /jobs/:id and /edit-job/:id. Failures are thrown as
 // Responses so the route's errorElement can tell a 404 from other errors.

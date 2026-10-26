@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { JOB_TYPES, SALARY_OPTIONS, type JobInput, type JobType } from "@react-dev/shared";
+import { JOB_TYPES, SALARY_OPTIONS, type JobInput, type JobType } from "@fredericton-grad-jobs/shared";
 
 const isJobType = (value: string): value is JobType =>
   JOB_TYPES.some((jobType) => jobType === value);
