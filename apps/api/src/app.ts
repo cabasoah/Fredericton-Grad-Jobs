@@ -1,16 +1,22 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import { pinoHttp } from "pino-http";
 import type { Logger } from "pino";
 import type { Db } from "./db";
+import type { SessionConfig } from "./auth/session";
 import { notFound } from "./errors";
 import { createErrorHandler } from "./middleware/errorHandler";
 import {
+  createLoginRateLimiters,
   createWriteRateLimiter,
+  DEFAULT_LOGIN_RATE_LIMIT,
   DEFAULT_WRITE_RATE_LIMIT,
+  type LoginRateLimitOptions,
   type RateLimitOptions,
 } from "./middleware/rateLimit";
+import { authRouter } from "./routes/auth";
 import { companiesRouter } from "./routes/companies";
 import { healthRouter } from "./routes/health";
 import { jobsRouter } from "./routes/jobs";
@@ -19,30 +25,42 @@ export type AppOptions = {
   db: Db;
   logger: Logger;
   corsOrigins: string[];
+  session: SessionConfig;
   // Include stack traces in 500 responses. Only true in development.
   exposeErrorStack: boolean;
   writeRateLimit?: RateLimitOptions;
+  loginRateLimit?: LoginRateLimitOptions;
 };
 
 export const createApp = ({
   db,
   logger,
   corsOrigins,
+  session,
   exposeErrorStack,
   writeRateLimit = DEFAULT_WRITE_RATE_LIMIT,
+  loginRateLimit = DEFAULT_LOGIN_RATE_LIMIT,
 }: AppOptions) => {
   const app = express();
   // Shared by all write routes so they count against one limit per client.
   const writeLimiter = createWriteRateLimiter(writeRateLimit);
 
-  app.use(pinoHttp({ logger }));
+  // Never write session cookies to the logs.
+  app.use(
+    pinoHttp({
+      logger: logger.child({}, { redact: ["req.headers.cookie", 'res.headers["set-cookie"]'] }),
+    }),
+  );
   app.use(helmet());
-  app.use(cors({ origin: corsOrigins }));
+  // credentials: true lets the web app send and receive the session cookie.
+  app.use(cors({ origin: corsOrigins, credentials: true }));
   app.use(express.json({ limit: "100kb" }));
+  app.use(cookieParser());
 
   const v1 = express.Router();
   v1.use("/health", healthRouter(db));
-  v1.use("/jobs", jobsRouter(db, writeLimiter));
+  v1.use("/auth", authRouter(db, session, createLoginRateLimiters(loginRateLimit)));
+  v1.use("/jobs", jobsRouter(db, session, writeLimiter));
   v1.use("/companies", companiesRouter(db));
   app.use("/api/v1", v1);
 

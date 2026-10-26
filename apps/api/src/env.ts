@@ -1,10 +1,15 @@
 import { existsSync } from "node:fs";
 import { z } from "zod";
 
+// The development-only value in apps/api/.env.example.
+const EXAMPLE_JWT_SECRET = "dev-only-insecure-jwt-secret-change-me-0000";
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   DATABASE_URL: z.string().min(1),
+  // Signs session JWTs. At least 32 characters of random data.
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   // Comma-separated list of allowed origins, e.g. "http://localhost:3000".
   CORS_ORIGIN: z
     .string()
@@ -16,6 +21,9 @@ const EnvSchema = z.object({
         .filter(Boolean),
     ),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+}).refine((env) => !(env.NODE_ENV === "production" && env.JWT_SECRET === EXAMPLE_JWT_SECRET), {
+  path: ["JWT_SECRET"],
+  message: "Replace the example JWT_SECRET from .env.example before running in production",
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -25,7 +33,11 @@ export const loadEnv = (): Env => {
   if (existsSync(".env")) {
     process.loadEnvFile(".env");
   }
-  const result = EnvSchema.safeParse(process.env);
+  return parseEnv(process.env);
+};
+
+export const parseEnv = (source: Record<string, string | undefined>): Env => {
+  const result = EnvSchema.safeParse(source);
   if (!result.success) {
     throw new Error(
       `Invalid environment (see apps/api/.env.example):\n${z.prettifyError(result.error)}`,

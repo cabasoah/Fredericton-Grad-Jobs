@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CompanyInputSchema, CompanySchema } from "./companies";
+import { CompanySchema } from "./companies";
 import {
   CurrencySchema,
   JobSortSchema,
@@ -15,8 +15,11 @@ export const DEFAULT_PAGE_SIZE = 20;
 // Annual salary in whole currency units.
 const SalarySchema = z.number().int().min(0).max(10_000_000);
 
-// Writable job fields with no defaults. Defaults live only on the create
-// schema so that a PATCH never resets fields the client did not send.
+// Fields an employer may write, with no defaults. Defaults live only on the
+// create schema so that a PATCH never resets fields the client did not send.
+// The company, poster, source and externalId are set by the API, never by
+// the client: an employer always posts for their own company, and only
+// importers create non-MANUAL jobs.
 const JobFieldsSchema = z.object({
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().min(1).max(20_000),
@@ -27,8 +30,6 @@ const JobFieldsSchema = z.object({
   salaryMax: SalarySchema.nullable(),
   currency: CurrencySchema,
   tags: z.array(z.string().trim().min(1).max(50)).max(20),
-  source: JobSourceSchema,
-  externalId: z.string().trim().min(1).max(200).nullable(),
   externalUrl: z.url().nullable(),
   status: JobStatusSchema,
 });
@@ -45,37 +46,23 @@ const checkSalaryRange = (value: SalaryRange, ctx: z.RefinementCtx) => {
   }
 };
 
-// POST /jobs body. The company is either an existing companyId or company
-// details; the API reuses a company with the same name (case-insensitive)
-// or creates it.
+// POST /jobs body (employers only). The job is posted for the employer's
+// own company.
 export const JobCreateSchema = JobFieldsSchema.extend({
   remote: RemoteTypeSchema.default("ONSITE"),
   salaryMin: SalarySchema.nullable().default(null),
   salaryMax: SalarySchema.nullable().default(null),
   currency: CurrencySchema.default("CAD"),
   tags: z.array(z.string().trim().min(1).max(50)).max(20).default([]),
-  source: JobSourceSchema.default("MANUAL"),
-  externalId: z.string().trim().min(1).max(200).nullable().default(null),
   externalUrl: z.url().nullable().default(null),
   status: JobStatusSchema.default("OPEN"),
-  companyId: z.string().min(1).optional(),
-  company: CompanyInputSchema.optional(),
 })
   .strict()
-  .superRefine((value, ctx) => {
-    if ((value.companyId === undefined) === (value.company === undefined)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["company"],
-        message: "Provide exactly one of companyId or company",
-      });
-    }
-    checkSalaryRange(value, ctx);
-  });
+  .superRefine(checkSalaryRange);
 
-// PATCH /jobs/:id body. Every field is optional; only sent fields change.
+// PATCH /jobs/:id body (the job's poster only). Every field is optional;
+// only sent fields change.
 export const JobUpdateSchema = JobFieldsSchema.partial()
-  .extend({ companyId: z.string().min(1).optional() })
   .strict()
   .superRefine((value, ctx) => {
     if (Object.keys(value).length === 0) {
@@ -106,6 +93,8 @@ export const JobListQuerySchema = z.strictObject({
 
 const JobBaseSchema = JobFieldsSchema.extend({
   id: z.string(),
+  source: JobSourceSchema,
+  externalId: z.string().nullable(),
   postedAt: z.iso.datetime(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

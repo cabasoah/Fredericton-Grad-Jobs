@@ -1,14 +1,11 @@
 import { Router, type RequestHandler } from "express";
 import { z } from "zod";
-import {
-  JobCreateSchema,
-  JobListQuerySchema,
-  JobUpdateSchema,
-  type JobCreate,
-} from "@fredericton-grad-jobs/shared";
+import { JobCreateSchema, JobListQuerySchema, JobUpdateSchema } from "@fredericton-grad-jobs/shared";
 import type { Db } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import { HttpError, notFound } from "../errors";
+import { currentUser, requireAuth, requireRole, type AuthUser } from "../auth/middleware";
+import type { SessionConfig } from "../auth/session";
 import { encodeCursor, orderByFor, whereFor } from "./jobQuery";
 
 const include = { company: true } as const;
@@ -17,37 +14,26 @@ const IdParamsSchema = z.object({ id: z.string().min(1) });
 
 type Tx = Prisma.TransactionClient;
 
-const companyNotFound = () =>
-  new HttpError(400, "VALIDATION_ERROR", "Company not found", [
-    { path: "companyId", message: "No company with this id" },
-  ]);
-
-const assertCompanyExists = async (tx: Tx, companyId: string) => {
-  const company = await tx.company.findUnique({ where: { id: companyId }, select: { id: true } });
-  if (!company) throw companyNotFound();
-};
-
-// Reuses a company with the same name (case-insensitive) or creates it.
-const resolveCompanyId = async (tx: Tx, body: JobCreate): Promise<string> => {
-  if (body.companyId !== undefined) {
-    await assertCompanyExists(tx, body.companyId);
-    return body.companyId;
-  }
-  if (body.company === undefined) {
-    // Unreachable: JobCreateSchema requires one of them.
-    throw companyNotFound();
-  }
-  const existing = await tx.company.findFirst({
-    where: { name: { equals: body.company.name, mode: "insensitive" } },
-    select: { id: true },
+// Loads a job the current user may change: 404 if missing, 403 if it was
+// imported (source != MANUAL, nobody may edit it) or posted by someone else.
+const findOwnedJob = async (tx: Tx, id: string, user: AuthUser) => {
+  const job = await tx.job.findUnique({
+    where: { id },
+    select: { id: true, source: true, postedById: true, salaryMin: true, salaryMax: true },
   });
-  if (existing) return existing.id;
-  const created = await tx.company.create({ data: body.company, select: { id: true } });
-  return created.id;
+  if (!job) throw notFound("Job not found");
+  if (job.source !== "MANUAL") {
+    throw new HttpError(403, "FORBIDDEN", "Imported jobs cannot be edited or deleted");
+  }
+  if (job.postedById !== user.id) {
+    throw new HttpError(403, "FORBIDDEN", "Only the employer who posted this job can change it");
+  }
+  return job;
 };
 
-export const jobsRouter = (db: Db, writeLimiter: RequestHandler) => {
+export const jobsRouter = (db: Db, session: SessionConfig, writeLimiter: RequestHandler) => {
   const router = Router();
+  const signedIn = requireAuth(db, session);
 
   router.get("/", async (req, res) => {
     const query = JobListQuerySchema.parse(req.query);
@@ -70,26 +56,26 @@ export const jobsRouter = (db: Db, writeLimiter: RequestHandler) => {
     res.json(job);
   });
 
-  router.post("/", writeLimiter, async (req, res) => {
+  // Employers post for their own company; the job records who posted it.
+  router.post("/", writeLimiter, signedIn, requireRole("EMPLOYER"), async (req, res) => {
+    const user = currentUser(req);
     const body = JobCreateSchema.parse(req.body);
-    const job = await db.$transaction(async (tx) => {
-      const companyId = await resolveCompanyId(tx, body);
-      const { company: _company, companyId: _companyId, ...fields } = body;
-      return tx.job.create({ data: { ...fields, companyId }, include });
+    if (!user.companyId) {
+      throw new HttpError(403, "FORBIDDEN", "Your employer account is not linked to a company");
+    }
+    const job = await db.job.create({
+      data: { ...body, source: "MANUAL", companyId: user.companyId, postedById: user.id },
+      include,
     });
     res.status(201).json(job);
   });
 
-  router.patch("/:id", writeLimiter, async (req, res) => {
+  router.patch("/:id", writeLimiter, signedIn, async (req, res) => {
+    const user = currentUser(req);
     const { id } = IdParamsSchema.parse(req.params);
     const body = JobUpdateSchema.parse(req.body);
     const job = await db.$transaction(async (tx) => {
-      const existing = await tx.job.findUnique({
-        where: { id },
-        select: { salaryMin: true, salaryMax: true },
-      });
-      if (!existing) throw notFound("Job not found");
-      if (body.companyId !== undefined) await assertCompanyExists(tx, body.companyId);
+      const existing = await findOwnedJob(tx, id, user);
 
       // The schema only checks the range when both ends are sent.
       const salaryMin = body.salaryMin !== undefined ? body.salaryMin : existing.salaryMin;
@@ -104,10 +90,13 @@ export const jobsRouter = (db: Db, writeLimiter: RequestHandler) => {
     res.json(job);
   });
 
-  router.delete("/:id", writeLimiter, async (req, res) => {
-    // A missing job raises Prisma P2025, mapped to 404 by the error middleware.
+  router.delete("/:id", writeLimiter, signedIn, async (req, res) => {
+    const user = currentUser(req);
     const { id } = IdParamsSchema.parse(req.params);
-    await db.job.delete({ where: { id } });
+    await db.$transaction(async (tx) => {
+      await findOwnedJob(tx, id, user);
+      await tx.job.delete({ where: { id } });
+    });
     res.status(204).end();
   });
 

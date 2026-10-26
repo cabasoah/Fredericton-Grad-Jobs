@@ -11,6 +11,7 @@ const app = createApp({
   db,
   logger,
   corsOrigins: env.CORS_ORIGIN,
+  session: { secret: env.JWT_SECRET, secureCookies: env.NODE_ENV === "production" },
   exposeErrorStack: env.NODE_ENV === "development",
 });
 

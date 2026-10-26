@@ -3,12 +3,20 @@ import { afterAll, beforeEach, describe, expect, inject, it } from "vitest";
 import {
   CompanyListResponseSchema,
   CompanyWithJobsSchema,
-  JobListResponseSchema,
   ErrorResponseSchema,
+  JobListResponseSchema,
   JobSchema,
 } from "@fredericton-grad-jobs/shared";
 import { createPrismaClient } from "../db";
-import type { Prisma } from "../generated/prisma/client";
+import {
+  createCompany,
+  createEmployer,
+  createJob,
+  createSeeker,
+  resetDb,
+  signedInAgent,
+  type JobOverrides,
+} from "../test/fixtures";
 import { createTestApp } from "../testApp";
 
 const db = createPrismaClient(inject("databaseUrl"));
@@ -19,29 +27,11 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await db.$executeRawUnsafe(
-    'TRUNCATE "Application", "Job", "Company", "User" RESTART IDENTITY CASCADE',
-  );
+  await resetDb(db);
 });
 
 // Parses an error response body, failing the test if it has the wrong shape.
 const errorOf = (res: { body: unknown }) => ErrorResponseSchema.parse(res.body).error;
-
-const createCompany = (name: string) => db.company.create({ data: { name } });
-
-type JobOverrides = Partial<Prisma.JobUncheckedCreateInput>;
-
-const createJob = (companyId: string, overrides: JobOverrides = {}) =>
-  db.job.create({
-    data: {
-      title: "Developer",
-      description: "Write code.",
-      type: "FULL_TIME",
-      location: "Fredericton, NB",
-      companyId,
-      ...overrides,
-    },
-  });
 
 const listJobs = async (query: Record<string, string>) => {
   const res = await request(app).get("/api/v1/jobs").query(query);
@@ -68,27 +58,43 @@ const newJobBody = {
   location: "Fredericton, NB",
   salaryMin: 50000,
   salaryMax: 60000,
-  company: { name: "Acme", contactEmail: "jobs@acme.test" },
 };
 
 describe("POST /api/v1/jobs", () => {
-  it("creates a job and its company, then reuses the company case-insensitively", async () => {
-    const first = await request(app).post("/api/v1/jobs").send(newJobBody);
-    expect(first.status).toBe(201);
-    const job = JobSchema.parse(first.body);
-    expect(job).toMatchObject({ title: "Junior Developer", remote: "ONSITE", currency: "CAD" });
-    expect(job.company).toMatchObject({ name: "Acme", contactEmail: "jobs@acme.test" });
+  it("lets an employer post a job for their own company", async () => {
+    const { user, company } = await createEmployer(db, "erin@acme.test", "Acme");
+    const agent = await signedInAgent(app, "erin@acme.test");
 
-    const second = await request(app)
-      .post("/api/v1/jobs")
-      .send({ ...newJobBody, company: { name: "ACME" } });
-    expect(second.status).toBe(201);
-    expect(JobSchema.parse(second.body).companyId).toBe(job.companyId);
-    expect(await db.company.count()).toBe(1);
+    const res = await agent.post("/api/v1/jobs").send(newJobBody);
+    expect(res.status).toBe(201);
+    expect(JobSchema.parse(res.body)).toMatchObject({
+      title: "Junior Developer",
+      remote: "ONSITE",
+      currency: "CAD",
+      source: "MANUAL",
+      companyId: company.id,
+      postedById: user.id,
+    });
   });
 
-  it("returns 400 with details for an invalid body", async () => {
-    const res = await request(app)
+  it("returns 401 without a session cookie", async () => {
+    const res = await request(app).post("/api/v1/jobs").send(newJobBody);
+    expect(res.status).toBe(401);
+    expect(errorOf(res).code).toBe("UNAUTHORIZED");
+  });
+
+  it("returns 403 for a job seeker", async () => {
+    await createSeeker(db, "sam@example.test");
+    const agent = await signedInAgent(app, "sam@example.test");
+    const res = await agent.post("/api/v1/jobs").send(newJobBody);
+    expect(res.status).toBe(403);
+    expect(errorOf(res)).toEqual({ code: "FORBIDDEN", message: "Your account type cannot do this" });
+  });
+
+  it("returns 400 with details for an invalid body, including client-chosen company or source", async () => {
+    await createEmployer(db, "erin@acme.test", "Acme");
+    const agent = await signedInAgent(app, "erin@acme.test");
+    const res = await agent
       .post("/api/v1/jobs")
       .send({ ...newJobBody, type: "Full-Time", salaryMin: 90000 });
     expect(res.status).toBe(400);
@@ -96,42 +102,74 @@ describe("POST /api/v1/jobs", () => {
     expect(errorOf(res).details).toEqual(
       expect.arrayContaining([expect.objectContaining({ path: "type" })]),
     );
-  });
 
-  it("returns 400 for an unknown companyId", async () => {
-    const { company: _company, ...body } = newJobBody;
-    const res = await request(app)
-      .post("/api/v1/jobs")
-      .send({ ...body, companyId: "missing" });
-    expect(res.status).toBe(400);
-    expect(errorOf(res).message).toBe("Company not found");
-  });
-
-  it("returns 409 for a duplicate source and externalId", async () => {
-    const body = { ...newJobBody, source: "GREENHOUSE", externalId: "gh-1" };
-    expect((await request(app).post("/api/v1/jobs").send(body)).status).toBe(201);
-    const res = await request(app).post("/api/v1/jobs").send(body);
-    expect(res.status).toBe(409);
-    expect(errorOf(res).code).toBe("CONFLICT");
+    for (const extra of [{ companyId: "other" }, { source: "GREENHOUSE" }, { postedById: "x" }]) {
+      expect((await agent.post("/api/v1/jobs").send({ ...newJobBody, ...extra })).status).toBe(400);
+    }
   });
 });
 
-describe("GET, PATCH and DELETE /api/v1/jobs/:id", () => {
+describe("PATCH and DELETE /api/v1/jobs/:id", () => {
+  // Erin (Acme) owns the job; Olga (Globex) is another employer.
+  const setup = async (overrides: JobOverrides = {}) => {
+    const { user, company } = await createEmployer(db, "erin@acme.test", "Acme");
+    await createEmployer(db, "olga@globex.test", "Globex");
+    const job = await createJob(db, company.id, {
+      postedById: user.id,
+      salaryMin: 50000,
+      salaryMax: 60000,
+      tags: ["react"],
+      ...overrides,
+    });
+    return {
+      job,
+      owner: await signedInAgent(app, "erin@acme.test"),
+      other: await signedInAgent(app, "olga@globex.test"),
+    };
+  };
+
   it("returns 404 for a missing job", async () => {
+    const { owner } = await setup();
     for (const res of [
       await request(app).get("/api/v1/jobs/missing"),
-      await request(app).patch("/api/v1/jobs/missing").send({ title: "x" }),
-      await request(app).delete("/api/v1/jobs/missing"),
+      await owner.patch("/api/v1/jobs/missing").send({ title: "x" }),
+      await owner.delete("/api/v1/jobs/missing"),
     ]) {
       expect(res.status).toBe(404);
       expect(errorOf(res).code).toBe("NOT_FOUND");
     }
   });
 
-  it("updates only the sent fields", async () => {
-    const company = await createCompany("Acme");
-    const job = await createJob(company.id, { salaryMin: 50000, salaryMax: 60000, tags: ["react"] });
-    const res = await request(app).patch(`/api/v1/jobs/${job.id}`).send({ title: "Senior" });
+  it("returns 401 without a session cookie", async () => {
+    const { job } = await setup();
+    expect((await request(app).patch(`/api/v1/jobs/${job.id}`).send({ title: "x" })).status).toBe(401);
+    expect((await request(app).delete(`/api/v1/jobs/${job.id}`)).status).toBe(401);
+  });
+
+  it("returns 403 when another employer tries to edit or delete the job", async () => {
+    const { job, other } = await setup();
+    const patch = await other.patch(`/api/v1/jobs/${job.id}`).send({ title: "Hijacked" });
+    expect(patch.status).toBe(403);
+    const del = await other.delete(`/api/v1/jobs/${job.id}`);
+    expect(del.status).toBe(403);
+    expect(errorOf(del)).toEqual({
+      code: "FORBIDDEN",
+      message: "Only the employer who posted this job can change it",
+    });
+    expect(await db.job.findUnique({ where: { id: job.id } })).toMatchObject({ title: "Developer" });
+  });
+
+  it("returns 403 for imported jobs, even for the employer who owns them", async () => {
+    const { job, owner } = await setup({ source: "GREENHOUSE", externalId: "gh-1" });
+    const res = await owner.delete(`/api/v1/jobs/${job.id}`);
+    expect(res.status).toBe(403);
+    expect(errorOf(res).message).toBe("Imported jobs cannot be edited or deleted");
+    expect((await owner.patch(`/api/v1/jobs/${job.id}`).send({ title: "x" })).status).toBe(403);
+  });
+
+  it("lets the owner update only the sent fields", async () => {
+    const { job, owner } = await setup();
+    const res = await owner.patch(`/api/v1/jobs/${job.id}`).send({ title: "Senior" });
     expect(res.status).toBe(200);
     expect(JobSchema.parse(res.body)).toMatchObject({
       title: "Senior",
@@ -142,28 +180,26 @@ describe("GET, PATCH and DELETE /api/v1/jobs/:id", () => {
   });
 
   it("rejects a PATCH that would make salaryMin exceed the stored salaryMax", async () => {
-    const company = await createCompany("Acme");
-    const job = await createJob(company.id, { salaryMin: 50000, salaryMax: 60000 });
-    const res = await request(app).patch(`/api/v1/jobs/${job.id}`).send({ salaryMin: 70000 });
+    const { job, owner } = await setup();
+    const res = await owner.patch(`/api/v1/jobs/${job.id}`).send({ salaryMin: 70000 });
     expect(res.status).toBe(400);
     expect(errorOf(res).details).toEqual([
       { path: "salaryMax", message: "salaryMax must be greater than or equal to salaryMin" },
     ]);
   });
 
-  it("deletes a job", async () => {
-    const company = await createCompany("Acme");
-    const job = await createJob(company.id);
-    expect((await request(app).delete(`/api/v1/jobs/${job.id}`)).status).toBe(204);
+  it("lets the owner delete the job", async () => {
+    const { job, owner } = await setup();
+    expect((await owner.delete(`/api/v1/jobs/${job.id}`)).status).toBe(204);
     expect((await request(app).get(`/api/v1/jobs/${job.id}`)).status).toBe(404);
   });
 });
 
 describe("GET /api/v1/jobs filters", () => {
   beforeEach(async () => {
-    const acme = await createCompany("Acme Robotics");
-    const globex = await createCompany("Globex");
-    await createJob(acme.id, {
+    const acme = await createCompany(db, "Acme Robotics");
+    const globex = await createCompany(db, "Globex");
+    await createJob(db, acme.id, {
       title: "React Developer",
       type: "FULL_TIME",
       remote: "REMOTE",
@@ -172,7 +208,7 @@ describe("GET /api/v1/jobs filters", () => {
       salaryMax: 80000,
       tags: ["react", "typescript"],
     });
-    await createJob(globex.id, {
+    await createJob(db, globex.id, {
       title: "Data Intern",
       description: "Work with Python.",
       type: "INTERNSHIP",
@@ -180,8 +216,8 @@ describe("GET /api/v1/jobs filters", () => {
       salaryMin: 30000,
       tags: ["python"],
     });
-    await createJob(globex.id, { title: "Closed Role", status: "CLOSED", salaryMax: 200000 });
-    await createJob(globex.id, { title: "Unpaid Listing", location: "Saint John, NB" });
+    await createJob(db, globex.id, { title: "Closed Role", status: "CLOSED", salaryMax: 200000 });
+    await createJob(db, globex.id, { title: "Unpaid Listing", location: "Saint John, NB" });
   });
 
   const titles = async (query: Record<string, string>) =>
@@ -222,7 +258,7 @@ describe("GET /api/v1/jobs filters", () => {
 
 describe("GET /api/v1/jobs pagination", () => {
   beforeEach(async () => {
-    const company = await createCompany("Acme");
+    const company = await createCompany(db, "Acme");
     const postedAt = new Date("2026-01-01T00:00:00Z");
     // Two jobs share a postedAt and two have no salary at all, to exercise
     // the id tie-breaker and the trailing NULL group.
@@ -234,7 +270,7 @@ describe("GET /api/v1/jobs pagination", () => {
       { title: "E", salaryMin: 80000, salaryMax: null, postedAt: new Date("2026-02-01T00:00:00Z") },
       { title: "F", salaryMin: null, salaryMax: null, postedAt: new Date("2025-11-01T00:00:00Z") },
     ];
-    for (const job of jobs) await createJob(company.id, job);
+    for (const job of jobs) await createJob(db, company.id, job);
   });
 
   it("pages through every job exactly once for each sort", async () => {
@@ -287,10 +323,10 @@ describe("GET /api/v1/jobs pagination", () => {
 
 describe("/api/v1/companies", () => {
   it("lists companies with open job counts and shows one with its open jobs", async () => {
-    const acme = await createCompany("Acme");
-    await createJob(acme.id, { title: "Open" });
-    await createJob(acme.id, { title: "Closed", status: "CLOSED" });
-    await createCompany("Beta");
+    const acme = await createCompany(db, "Acme");
+    await createJob(db, acme.id, { title: "Open" });
+    await createJob(db, acme.id, { title: "Closed", status: "CLOSED" });
+    await createCompany(db, "Beta");
 
     const list = await request(app).get("/api/v1/companies");
     expect(list.status).toBe(200);
@@ -314,11 +350,13 @@ describe("/api/v1/companies", () => {
 describe("write rate limit", () => {
   it("returns 429 in the error shape once the limit is reached", async () => {
     const limited = createTestApp({ db, writeRateLimit: { windowMs: 60_000, limit: 1 } });
-    expect((await request(limited).post("/api/v1/jobs").send(newJobBody)).status).toBe(201);
-    const res = await request(limited).post("/api/v1/jobs").send(newJobBody);
+    await createEmployer(db, "erin@acme.test", "Acme");
+    const agent = await signedInAgent(limited, "erin@acme.test");
+    expect((await agent.post("/api/v1/jobs").send(newJobBody)).status).toBe(201);
+    const res = await agent.post("/api/v1/jobs").send(newJobBody);
     expect(res.status).toBe(429);
     expect(errorOf(res).code).toBe("RATE_LIMITED");
     // Reads are not rate limited.
-    expect((await request(limited).get("/api/v1/jobs")).status).toBe(200);
+    expect((await agent.get("/api/v1/jobs")).status).toBe(200);
   });
 });

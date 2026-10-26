@@ -6,30 +6,33 @@ const validCreate = {
   description: "Build things.",
   type: "FULL_TIME",
   location: "Fredericton, NB",
-  company: { name: "Example Co" },
 };
 
 describe("JobCreateSchema", () => {
   it("applies defaults for omitted fields", () => {
     const parsed = JobCreateSchema.parse(validCreate);
-    expect(parsed).toMatchObject({
+    expect(parsed).toEqual({
+      ...validCreate,
       remote: "ONSITE",
       salaryMin: null,
       salaryMax: null,
       currency: "CAD",
       tags: [],
-      source: "MANUAL",
-      externalId: null,
       externalUrl: null,
       status: "OPEN",
     });
   });
 
-  it("requires exactly one of companyId or company", () => {
-    const { company: _company, ...withoutCompany } = validCreate;
-    expect(JobCreateSchema.safeParse(withoutCompany).success).toBe(false);
-    expect(JobCreateSchema.safeParse({ ...validCreate, companyId: "c1" }).success).toBe(false);
-    expect(JobCreateSchema.safeParse({ ...withoutCompany, companyId: "c1" }).success).toBe(true);
+  it("does not let the client choose the company, poster or source", () => {
+    for (const extra of [
+      { companyId: "c1" },
+      { company: { name: "Someone Else" } },
+      { postedById: "u1" },
+      { source: "GREENHOUSE" },
+      { externalId: "gh-1" },
+    ]) {
+      expect(JobCreateSchema.safeParse({ ...validCreate, ...extra }).success).toBe(false);
+    }
   });
 
   it("rejects salaryMin greater than salaryMax", () => {
