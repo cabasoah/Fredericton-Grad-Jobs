@@ -1,15 +1,57 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AddJobPage = () => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [location, setLocation] = useState("");
-    const [salary, setSalary] = useState("");
-    const [type, setType] = useState("");
+    const [salary, setSalary] = useState("Under $50K");
+    const [type, setType] = useState("Full-Time");
     const [companyName, setCompanyName] = useState("");
     const [companyDescription, setCompanyDescription] = useState("");
     const [contactEmail, setContactEmail] = useState("");
     const [contactPhone, setContactPhone] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState("");
+
+    const navigate = useNavigate();
+
+    const submitForm = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError("");
+
+      const newJob = {
+        title,
+        type,
+        location,
+        description,
+        salary,
+        company: {
+          name: companyName,
+          description: companyDescription,
+          contactEmail,
+          contactPhone,
+        },
+      };
+
+      try {
+        const res = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newJob),
+        });
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+        const createdJob = await res.json();
+        navigate(`/jobs/${createdJob.id}`);
+      } catch (err) {
+        console.error("Error adding job", err);
+        setError("Could not add the job. Please try again.");
+        setSubmitting(false);
+      }
+    };
 
   return (
      <section className="bg-indigo-50">
@@ -17,7 +59,7 @@ const AddJobPage = () => {
         <div
           className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0"
         >
-          <form>
+          <form onSubmit={submitForm}>
             <h2 className="text-3xl text-center font-semibold mb-6">Add Job</h2>
 
             <div className="mb-4">
@@ -29,6 +71,7 @@ const AddJobPage = () => {
                 name="type"
                 className="border rounded w-full py-2 px-3"
                 value={type}
+                onChange={(e) => setType(e.target.value)}
                 required
               >
                 <option value="Full-Time">Full-Time</option>
@@ -39,7 +82,7 @@ const AddJobPage = () => {
             </div>
 
             <div className="mb-4">
-              <label className="block text-gray-700 font-bold mb-2"
+              <label htmlFor="title" className="block text-gray-700 font-bold mb-2"
                 >Job Listing Name</label
               >
               <input
@@ -47,7 +90,9 @@ const AddJobPage = () => {
                 id="title"
                 name="title"
                 className="border rounded w-full py-2 px-3 mb-2"
-                placeholder="eg. Beautiful Apartment In Miami"
+                placeholder="eg. Senior React Developer"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 required
               />
             </div>
@@ -63,35 +108,39 @@ const AddJobPage = () => {
                 className="border rounded w-full py-2 px-3"
                 rows="4"
                 placeholder="Add any job duties, expectations, requirements, etc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               ></textarea>
             </div>
 
             <div className="mb-4">
-              <label htmlFor="type" className="block text-gray-700 font-bold mb-2"
+              <label htmlFor="salary" className="block text-gray-700 font-bold mb-2"
                 >Salary</label
               >
               <select
                 id="salary"
                 name="salary"
                 className="border rounded w-full py-2 px-3"
+                value={salary}
+                onChange={(e) => setSalary(e.target.value)}
                 required
               >
                 <option value="Under $50K">Under $50K</option>
-                <option value="$50K - 60K">$50K - $60K</option>
-                <option value="$60K - 70K">$60K - $70K</option>
-                <option value="$70K - 80K">$70K - $80K</option>
-                <option value="$80K - 90K">$80K - $90K</option>
-                <option value="$90K - 100K">$90K - $100K</option>
-                <option value="$100K - 125K">$100K - $125K</option>
-                <option value="$125K - 150K">$125K - $150K</option>
-                <option value="$150K - 175K">$150K - $175K</option>
-                <option value="$175K - 200K">$175K - $200K</option>
+                <option value="$50K - $60K">$50K - $60K</option>
+                <option value="$60K - $70K">$60K - $70K</option>
+                <option value="$70K - $80K">$70K - $80K</option>
+                <option value="$80K - $90K">$80K - $90K</option>
+                <option value="$90K - $100K">$90K - $100K</option>
+                <option value="$100K - $125K">$100K - $125K</option>
+                <option value="$125K - $150K">$125K - $150K</option>
+                <option value="$150K - $175K">$150K - $175K</option>
+                <option value="$175K - $200K">$175K - $200K</option>
                 <option value="Over $200K">Over $200K</option>
               </select>
             </div>
 
             <div className='mb-4'>
-              <label className='block text-gray-700 font-bold mb-2'>
+              <label htmlFor='location' className='block text-gray-700 font-bold mb-2'>
                 Location
               </label>
               <input
@@ -100,7 +149,9 @@ const AddJobPage = () => {
                 name='location'
                 className='border rounded w-full py-2 px-3 mb-2'
                 placeholder='Company Location'
-                required           
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
               />
             </div>
 
@@ -116,6 +167,8 @@ const AddJobPage = () => {
                 name="company"
                 className="border rounded w-full py-2 px-3"
                 placeholder="Company Name"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
               />
             </div>
 
@@ -131,6 +184,8 @@ const AddJobPage = () => {
                 className="border rounded w-full py-2 px-3"
                 rows="4"
                 placeholder="What does your company do?"
+                value={companyDescription}
+                onChange={(e) => setCompanyDescription(e.target.value)}
               ></textarea>
             </div>
 
@@ -146,6 +201,8 @@ const AddJobPage = () => {
                 name="contact_email"
                 className="border rounded w-full py-2 px-3"
                 placeholder="Email address for applicants"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
                 required
               />
             </div>
@@ -161,15 +218,22 @@ const AddJobPage = () => {
                 name="contact_phone"
                 className="border rounded w-full py-2 px-3"
                 placeholder="Optional phone for applicants"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
               />
             </div>
 
+            {error && (
+              <p className="text-red-600 mb-4" role="alert">{error}</p>
+            )}
+
             <div>
               <button
-                className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline"
+                className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
+                disabled={submitting}
               >
-                Add Job
+                {submitting ? "Adding Job..." : "Add Job"}
               </button>
             </div>
           </form>
