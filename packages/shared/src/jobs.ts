@@ -91,7 +91,20 @@ export const JobListQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
 });
 
-const JobBaseSchema = JobFieldsSchema.extend({
+// Response shape: checks types only, not the input limits above. Imported
+// jobs are written by the ingester, not the form, and may be longer.
+const JobBaseSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  type: JobTypeSchema,
+  remote: RemoteTypeSchema,
+  location: z.string(),
+  salaryMin: z.number().int().nullable(),
+  salaryMax: z.number().int().nullable(),
+  currency: z.string(),
+  tags: z.array(z.string()),
+  externalUrl: z.string().nullable(),
+  status: JobStatusSchema,
   id: z.string(),
   source: JobSourceSchema,
   externalId: z.string().nullable(),

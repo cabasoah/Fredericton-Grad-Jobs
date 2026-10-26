@@ -2,6 +2,7 @@ import { pino } from "pino";
 import { createApp } from "./app";
 import { createPrismaClient } from "./db";
 import { loadEnv } from "./env";
+import { startIngestSchedule } from "./ingest/schedule";
 
 const env = loadEnv();
 const logger = pino({ level: env.LOG_LEVEL });
@@ -23,8 +24,11 @@ const server = app.listen(env.PORT, (error) => {
   logger.info(`API listening on http://localhost:${env.PORT}/api/v1`);
 });
 
+const ingestTask = env.INGEST_CRON ? startIngestSchedule(db, logger) : null;
+
 const shutdown = (signal: string) => {
   logger.info(`${signal} received, shutting down`);
+  void ingestTask?.stop();
   server.close(() => {
     void db.$disconnect().finally(() => process.exit(0));
   });

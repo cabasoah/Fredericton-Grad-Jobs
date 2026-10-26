@@ -21,6 +21,11 @@ const EnvSchema = z.object({
         .filter(Boolean),
     ),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+  // "true" runs job ingestion every 6 hours inside the API process.
+  INGEST_CRON: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 }).refine((env) => !(env.NODE_ENV === "production" && env.JWT_SECRET === EXAMPLE_JWT_SECRET), {
   path: ["JWT_SECRET"],
   message: "Replace the example JWT_SECRET from .env.example before running in production",

@@ -111,6 +111,29 @@ model User {
   @@index([companyId])
 }
 
+// One row per company per ingestion run (npm run ingest or the cron job).
+model IngestRun {
+  id          String    @id @default(cuid())
+  // Shared by all rows written by one run, so a run's rows can be grouped.
+  batchId     String
+  source      JobSource
+  // Board token (Greenhouse) or company slug (Lever).
+  company     String
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  fetched     Int       @default(0)
+  created     Int       @default(0)
+  updated     Int       @default(0)
+  closed      Int       @default(0)
+  // Number of errors (failed fetch, or postings that could not be mapped).
+  errors      Int       @default(0)
+  // First error message, for debugging.
+  errorDetail String?
+
+  @@index([batchId])
+  @@index([finishedAt])
+}
+
 // Minimal for now; the personal application tracker comes in a later phase.
 model Application {
   id        String            @id @default(cuid())

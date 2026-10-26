@@ -11,12 +11,15 @@
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "entities": "^8.1.0",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
     "jose": "^6.2.13",
+    "node-cron": "^4.6.0",
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
+    "sanitize-html": "^2.18.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -25,6 +28,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.2",
+    "@types/sanitize-html": "^2.16.2",
     "@types/supertest": "^7.2.1",
     "prisma": "^7.10.1",
     "supertest": "^7.3.1",
@@ -39,6 +43,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:seed": "prisma db seed",
-    "test:integration": "vitest run --project integration"
+    "test:integration": "vitest run --project integration",
+    "ingest": "tsx src/ingest/cli.ts"
   }
 }

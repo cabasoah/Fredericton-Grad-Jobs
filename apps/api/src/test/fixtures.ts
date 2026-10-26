@@ -11,7 +11,7 @@ let passwordHash: Promise<string> | undefined;
 const fixturePasswordHash = () => (passwordHash ??= hashPassword(TEST_PASSWORD));
 
 export const resetDb = (db: Db) =>
-  db.$executeRawUnsafe('TRUNCATE "Application", "Job", "Company", "User" RESTART IDENTITY CASCADE');
+  db.$executeRawUnsafe('TRUNCATE "Application", "Job", "Company", "User", "IngestRun" RESTART IDENTITY CASCADE');
 
 export const createCompany = (db: Db, name: string) => db.company.create({ data: { name } });
 
