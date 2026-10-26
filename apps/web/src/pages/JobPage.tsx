@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLoaderData, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import type { jobLoader } from '../loaders/jobLoader';
+import type { jobLoader } from '@/loaders/jobLoader';
 
 const JobPage = () => {
     const jobData = useLoaderData<typeof jobLoader>();

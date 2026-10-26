@@ -1,7 +1,7 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
 import type { JobInput } from "@react-dev/shared";
-import JobForm from "../components/JobForm";
-import type { jobLoader } from "../loaders/jobLoader";
+import JobForm from "@/components/JobForm";
+import type { jobLoader } from "@/loaders/jobLoader";
 
 const EditJobPage = () => {
     const job = useLoaderData<typeof jobLoader>();

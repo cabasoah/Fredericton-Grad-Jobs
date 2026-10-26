@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { JobSchema, type JobInput } from "@react-dev/shared";
-import JobForm from "../components/JobForm";
+import JobForm from "@/components/JobForm";
 
 const AddJobPage = () => {
     const navigate = useNavigate();
