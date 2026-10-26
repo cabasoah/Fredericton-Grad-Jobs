@@ -1,5 +1,5 @@
-  {
-    "jobs": [
+{
+  "jobs": [
     {
       "id": "1",
       "title": "Senior React Developer",
@@ -83,6 +83,20 @@
         "contactEmail": "contact@ipsumlorem.com",
         "contactPhone": "555-555-5555"
       }
+    },
+    {
+      "id": "8d2f",
+      "title": "Software Engineering Practice",
+      "type": "Full-Time",
+      "location": "Toronto, Montreal, Halifax, Waterloo, Calgary and Vancouver",
+      "description": "About The Role\nNot just another entry level career opportunity: receive coaching, mentorship, and support at every step of your career journey. We invest in you so you can thrive and succeed.\n\nLaunch your tech career with FDM – any degree welcomed\n\nYour degree got you here, your passion can take you further. Start a tech career that’s both dynamic and impactful. As an FDM Consultant, you’ll get the chance to work with global companies across banking, consulting, retail, insurance, and more. You’ll add big names to your resume and gaining hands-on experience from day one.\n\nServing a wide variety of industries, we can offer our consultants a career path in their most suited field. We help you develop and build on your strengths, behaviors, knowledge, and ability with hands-on, industry relevant coaching, and place you on assignments with leading global companies.\n\nWe match your strengths to the right role. Opportunities could include, but not limited to:\n\nQuality Engineer\nTest software manually and with tools like Selenium and Cucumber, ensuring reliability, performance, and seamless user experiences across every release.\n \nCloud Developer\nBuild and deploy cloud-native applications on AWS or Azure using Java and React, optimizing for performance, scalability, and resilience.\n \nSoftware Engineer\nDesign and build full-stack web applications using Java, Spring Boot, and React, delivering scalable, secure, and responsive digital experiences.\n \nAbout You\nWhat’s in it for you?\n\nFast-track your career with 6-12 weeks initial upskilling courses facilitated by our expert coaches, followed by practice-based learning catered to industry demand\nOpportunity to work on exciting, business-critical projects with top-tier companies in banking & finance, insurance, retail, and more\nDive into delivering solutions across the application lifecycle\nNo tech experience? No problem. If you’re analytical, tech-inclined, and love problem-solving, we’ll equip you with the skills to succeed in Software Engineering\nWith hands-on support and real client projects, you’ll be assignment-ready, and can grow into senior roles in just a few years\nBuild a diverse and rewarding career path with ongoing coaching through our Skills Lab\nConsultant Experience Team to support your wellbeing, health, and happiness\nPotential to qualify for relocation support\n\nWhat we look for\n\nYou hold a university degree level (bachelor or higher)\nAble to commit to at least two years of employment with FDM as a consultant following the initial training period\nStrong problem-solving and analytical skills, paired with great interpersonal and communication skills\nEligible to work in Canada\nPlease note that all client assignments will require on-site work in client offices. Office locations may include, but are not limited to, Toronto, Montreal, Halifax, Waterloo, Calgary and Vancouver\nDuring the initial period of upskilling, all hours worked will be compensated at the rate of $18.35/hour. Once on client assignment, the compensation for this position is $50,000 annually and this role may also be eligible for participation in FDM's bonus scheme.",
+      "salary": "$50K - $60K",
+      "company": {
+        "name": "FDM",
+        "description": "FDM powers the people behind tech and innovation. We spot trends, find top talent, and help businesses stay ahead. \n\nWith 35+ years of experience, we coach, mentor, and launch fresh thinkers from diverse backgrounds into world-class careers. Partnering with top global companies, we deliver the right talent at the right time—while guiding our people toward exponential growth. \n\n🌍 Global impact – 18 centers across North America, APAC, the UK, and Europe \n🚀 25,000+ careers launched – and counting \n🤝 300+ trusted client partners \n\nCommitted to Diversity, Equity and Inclusion  ",
+        "contactEmail": "fdm@fdm.ca",
+        "contactPhone": "516356278234"
+      }
     }
-]
+  ]
 }
