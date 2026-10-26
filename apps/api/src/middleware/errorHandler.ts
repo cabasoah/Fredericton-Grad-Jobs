@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
-import type { ErrorResponse } from "@fredericton-grad-jobs/shared/api";
+import type { ErrorResponse } from "@fredericton-grad-jobs/shared";
 import { Prisma } from "../generated/prisma/client";
 import { HttpError } from "../errors";
 

@@ -16,13 +16,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // Fail instead of moving to another port: the API only allows this
+    // origin through CORS (CORS_ORIGIN in apps/api/.env).
+    strictPort: true,
     open: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      }
-    },
   },
 })

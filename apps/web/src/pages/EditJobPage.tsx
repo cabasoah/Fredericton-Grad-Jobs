@@ -1,22 +1,17 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
-import type { JobInput } from "@fredericton-grad-jobs/shared";
-import JobForm from "@/components/JobForm";
-import { API_URL } from "@/config";
+import { JobUpdateSchema } from "@fredericton-grad-jobs/shared";
+import JobForm, { type JobFormFields } from "@/components/JobForm";
+import { apiFetch, jsonRequest } from "@/lib/api";
 import type { jobLoader } from "@/loaders/jobLoader";
 
 const EditJobPage = () => {
     const job = useLoaderData<typeof jobLoader>();
     const navigate = useNavigate();
 
-    const updateJob = async (updatedJob: JobInput) => {
-      const res = await fetch(`${API_URL}/jobs/${job.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...updatedJob, id: job.id }),
-      });
-      if (!res.ok) {
-        throw new Error(`Request failed with status ${res.status}`);
-      }
+    const updateJob = async (fields: JobFormFields) => {
+      // Same schema the API validates with; throws ZodError for the form to show.
+      const body = JobUpdateSchema.parse(fields);
+      await apiFetch(`/jobs/${encodeURIComponent(job.id)}`, jsonRequest("PATCH", body));
       void navigate(`/jobs/${job.id}`);
     };
 

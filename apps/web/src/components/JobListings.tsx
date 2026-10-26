@@ -1,6 +1,6 @@
 import { useState,useEffect } from 'react';
-import { JobListSchema, type Job } from '@fredericton-grad-jobs/shared';
-import { API_URL } from '@/config';
+import { JobListResponseSchema, type Job } from '@fredericton-grad-jobs/shared';
+import { apiFetch } from '@/lib/api';
 import JobListing from './JobListing';
 import Spinner from './Spinner';
 
@@ -8,23 +8,29 @@ type JobListingsProps = {
   isHome?: boolean;
 };
 
+const HOME_LIMIT = 3;
+const PAGE_LIMIT = 20;
+
+const fetchJobsPage = async (limit: number, cursor?: string) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return JobListResponseSchema.parse(await apiFetch(`/jobs?${params.toString()}`));
+};
+
 const JobListings = ({isHome = false}: JobListingsProps) => {
-  //  const jobsListings = isHome ? jobs.slice(0, 3): jobs;
   const[jobs, setJobs] = useState<Job[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const apiUrl = isHome ? `${API_URL}/jobs?_limit=3` : `${API_URL}/jobs`;
       try {
-        const res = await fetch(apiUrl);
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-        const data: unknown = await res.json();
-        setJobs(JobListSchema.parse(data));
+        const page = await fetchJobsPage(isHome ? HOME_LIMIT : PAGE_LIMIT);
+        setJobs(page.data);
+        setNextCursor(page.nextCursor);
       } catch (error) {
         console.log('Error fetching data',error);
         setError(true);
@@ -41,6 +47,21 @@ const JobListings = ({isHome = false}: JobListingsProps) => {
     setError(false);
     setLoading(true);
     setReloadCount((count) => count + 1);
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await fetchJobsPage(PAGE_LIMIT, nextCursor);
+      setJobs((current) => [...current, ...page.data]);
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      console.log('Error fetching more jobs', error);
+      setError(true);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   return (
@@ -62,13 +83,26 @@ const JobListings = ({isHome = false}: JobListingsProps) => {
             ) : jobs.length === 0 ? (
               <p className="text-center text-gray-600">No jobs posted yet.</p>
             ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {jobs.map((job) => (
                   <JobListing key={job.id} job={job} />
                 ))}
               </div>
+              {!isHome && nextCursor && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={() => void loadMore()}
+                    disabled={loadingMore}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                  >
+                    {loadingMore ? 'Loading...' : 'Load more'}
+                  </button>
+                </div>
+              )}
+              </>
             )}
-          
+
         </div>
       </section>
   )

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useLoaderData, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS } from '@fredericton-grad-jobs/shared';
 import type { jobLoader } from '@/loaders/jobLoader';
-import { API_URL } from '@/config';
+import { apiFetch } from '@/lib/api';
+import { formatSalary } from '@/lib/formatSalary';
 
 const JobPage = () => {
     const jobData = useLoaderData<typeof jobLoader>();
@@ -17,10 +19,7 @@ const JobPage = () => {
         setDeleting(true);
         setDeleteError("");
         try {
-            const res = await fetch(`${API_URL}/jobs/${jobData.id}`, { method: 'DELETE' });
-            if (!res.ok) {
-                throw new Error(`Request failed with status ${res.status}`);
-            }
+            await apiFetch(`/jobs/${encodeURIComponent(jobData.id)}`, { method: 'DELETE' });
             void navigate('/jobs');
         } catch (err) {
             console.error('Error deleting job', err);
@@ -49,7 +48,7 @@ const JobPage = () => {
                 <div
                 className="bg-white p-6 rounded-lg shadow-md text-center md:text-left"
                 >
-                <div className="text-gray-500 mb-4">{jobData.type}</div>
+                <div className="text-gray-500 mb-4">{JOB_TYPE_LABELS[jobData.type]} · {REMOTE_TYPE_LABELS[jobData.remote]}</div>
                 <h1 className="text-3xl font-bold mb-4">
                     {jobData.title}
                 </h1>
@@ -72,7 +71,7 @@ const JobPage = () => {
 
                 <h3 className="text-indigo-800 text-lg font-bold mb-2">Salary</h3>
 
-                <p className="mb-4">{jobData.salary} / Year</p>
+                <p className="mb-4">{formatSalary(jobData)}</p>
                 </div>
             </main>
 
@@ -93,12 +92,12 @@ const JobPage = () => {
                 <h3 className="text-xl">Contact Email:</h3>
 
                 <p className="my-2 bg-indigo-100 p-2 font-bold">
-                    {jobData.company.contactEmail}
+                    {jobData.company.contactEmail ?? 'Not provided'}
                 </p>
 
                 <h3 className="text-xl">Contact Phone:</h3>
 
-                <p className="my-2 bg-indigo-100 p-2 font-bold">{jobData.company.contactPhone}</p>
+                <p className="my-2 bg-indigo-100 p-2 font-bold">{jobData.company.contactPhone ?? 'Not provided'}</p>
                 </div>
 
                 {/* <!-- Manage --> */}

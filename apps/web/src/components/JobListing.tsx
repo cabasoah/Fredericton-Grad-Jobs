@@ -1,8 +1,9 @@
 import { useState } from "react"
 import {FaMapMarker} from "react-icons/fa"
 import { Link } from "react-router-dom";
-import type { Job } from "@fredericton-grad-jobs/shared";
+import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS, type Job } from "@fredericton-grad-jobs/shared";
 import { truncateDescription } from "@/lib/truncateDescription";
+import { formatSalary } from "@/lib/formatSalary";
 
 type JobListingProps = {
     job: Job;
@@ -17,7 +18,7 @@ const JobListing = ({job}: JobListingProps) => {
      <div className="bg-white rounded-xl shadow-md relative">
                     <div className="p-4">
                         <div className="mb-6">
-                        <div className="text-gray-600 my-2">{job.type}</div>
+                        <div className="text-gray-600 my-2">{JOB_TYPE_LABELS[job.type]} · {REMOTE_TYPE_LABELS[job.remote]}</div>
                         <h3 className="text-xl font-bold">{job.title}</h3>
                         </div>
 
@@ -30,7 +31,7 @@ const JobListing = ({job}: JobListingProps) => {
                             </button>
                         )}
 
-                        <h3 className="text-indigo-500 mb-2">{job.salary} / Year</h3>
+                        <h3 className="text-indigo-500 mb-2">{formatSalary(job)}</h3>
 
                         <div className="border border-gray-100 mb-5"></div>
 

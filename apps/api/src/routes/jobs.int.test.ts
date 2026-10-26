@@ -6,7 +6,7 @@ import {
   JobListResponseSchema,
   ErrorResponseSchema,
   JobSchema,
-} from "@fredericton-grad-jobs/shared/api";
+} from "@fredericton-grad-jobs/shared";
 import { createPrismaClient } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import { createTestApp } from "../testApp";

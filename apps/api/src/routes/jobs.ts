@@ -5,7 +5,7 @@ import {
   JobListQuerySchema,
   JobUpdateSchema,
   type JobCreate,
-} from "@fredericton-grad-jobs/shared/api";
+} from "@fredericton-grad-jobs/shared";
 import type { Db } from "../db";
 import type { Prisma } from "../generated/prisma/client";
 import { HttpError, notFound } from "../errors";

@@ -8,8 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/web",
-    "server": "npm run server -w apps/web",
+    "dev": "concurrently --names api,web --prefix-colors blue,magenta --kill-others-on-fail \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
     "build": "npm run build --workspaces --if-present",
     "preview": "npm run preview -w apps/web",
     "lint": "eslint .",
@@ -24,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "concurrently": "^10.0.6",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.2.0",

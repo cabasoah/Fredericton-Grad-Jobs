@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { JobListQuery, JobSort } from "@fredericton-grad-jobs/shared/api";
+import type { JobListQuery, JobSort } from "@fredericton-grad-jobs/shared";
 import type { Prisma } from "../generated/prisma/client";
 import { HttpError } from "../errors";
 

@@ -1,6 +1,4 @@
 @import "tailwindcss";
-/* json-server writes db/jobs.json; keep Tailwind from scanning it and triggering HMR */
-@source not "../db";
 
 body {
     padding: auto;

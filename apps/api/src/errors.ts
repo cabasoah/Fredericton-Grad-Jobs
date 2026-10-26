@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@fredericton-grad-jobs/shared/api";
+import type { ErrorCode } from "@fredericton-grad-jobs/shared";
 
 // An error with a known HTTP status, turned into an error response by the
 // error middleware.

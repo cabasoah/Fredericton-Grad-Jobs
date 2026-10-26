@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { JobType, RemoteType } from "@fredericton-grad-jobs/shared/api";
+import type { JobType, RemoteType } from "@fredericton-grad-jobs/shared";
 
 // Shape of prisma/seed-data/jobs.json, the data file of the json-server
 // prototype.
