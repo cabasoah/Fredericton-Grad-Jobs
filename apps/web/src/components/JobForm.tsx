@@ -1,27 +1,25 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { JOB_TYPES, SALARY_OPTIONS, type JobInput, type JobType } from "@react-dev/shared";
 
-const SALARY_OPTIONS = [
-  "Under $50K",
-  "$50K - $60K",
-  "$60K - $70K",
-  "$70K - $80K",
-  "$80K - $90K",
-  "$90K - $100K",
-  "$100K - $125K",
-  "$125K - $150K",
-  "$150K - $175K",
-  "$175K - $200K",
-  "Over $200K",
-];
+const isJobType = (value: string): value is JobType =>
+  JOB_TYPES.some((jobType) => jobType === value);
+
+type JobFormProps = {
+  heading: string;
+  submitLabel: string;
+  submittingLabel: string;
+  initialJob?: JobInput;
+  onSubmit: (job: JobInput) => Promise<void>;
+};
 
 // Shared form for adding and editing jobs. onSubmit receives the job object
 // (same shape as jobs.json, without id) and should throw if the save fails.
-const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }) => {
+const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }: JobFormProps) => {
     const [title, setTitle] = useState(initialJob?.title ?? "");
     const [description, setDescription] = useState(initialJob?.description ?? "");
     const [location, setLocation] = useState(initialJob?.location ?? "");
-    const [salary, setSalary] = useState(initialJob?.salary ?? SALARY_OPTIONS[0]);
-    const [type, setType] = useState(initialJob?.type ?? "Full-Time");
+    const [salary, setSalary] = useState<string>(initialJob?.salary ?? SALARY_OPTIONS[0]);
+    const [type, setType] = useState<JobType>(initialJob?.type ?? "Full-Time");
     const [companyName, setCompanyName] = useState(initialJob?.company?.name ?? "");
     const [companyDescription, setCompanyDescription] = useState(initialJob?.company?.description ?? "");
     const [contactEmail, setContactEmail] = useState(initialJob?.company?.contactEmail ?? "");
@@ -30,14 +28,14 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
     const [error, setError] = useState("");
 
     // Keep a saved salary selectable even if it is not one of the standard ranges.
-    const salaryOptions = SALARY_OPTIONS.includes(salary) ? SALARY_OPTIONS : [salary, ...SALARY_OPTIONS];
+    const salaryOptions = SALARY_OPTIONS.some((option) => option === salary) ? SALARY_OPTIONS : [salary, ...SALARY_OPTIONS];
 
-    const submitForm = async (e) => {
+    const submitForm = async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       setSubmitting(true);
       setError("");
 
-      const job = {
+      const job: JobInput = {
         title,
         type,
         location,
@@ -66,7 +64,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
         <div
           className="bg-white px-6 py-8 mb-4 shadow-md rounded-md border m-4 md:m-0"
         >
-          <form onSubmit={submitForm}>
+          <form onSubmit={(e) => void submitForm(e)}>
             <h2 className="text-3xl text-center font-semibold mb-6">{heading}</h2>
 
             <div className="mb-4">
@@ -78,7 +76,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
                 name="type"
                 className="border rounded w-full py-2 px-3"
                 value={type}
-                onChange={(e) => setType(e.target.value)}
+                onChange={(e) => { if (isJobType(e.target.value)) setType(e.target.value); }}
                 required
               >
                 <option value="Full-Time">Full-Time</option>
@@ -113,7 +111,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
                 id="description"
                 name="description"
                 className="border rounded w-full py-2 px-3"
-                rows="4"
+                rows={4}
                 placeholder="Add any job duties, expectations, requirements, etc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -181,7 +179,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, initialJob, onSubmit }
                 id="company_description"
                 name="company_description"
                 className="border rounded w-full py-2 px-3"
-                rows="4"
+                rows={4}
                 placeholder="What does your company do?"
                 value={companyDescription}
                 onChange={(e) => setCompanyDescription(e.target.value)}

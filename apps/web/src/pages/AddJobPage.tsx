@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { JobSchema, type JobInput } from "@react-dev/shared";
 import JobForm from "../components/JobForm";
 
 const AddJobPage = () => {
     const navigate = useNavigate();
 
-    const addJob = async (newJob) => {
+    const addJob = async (newJob: JobInput) => {
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -13,8 +14,9 @@ const AddJobPage = () => {
       if (!res.ok) {
         throw new Error(`Request failed with status ${res.status}`);
       }
-      const createdJob = await res.json();
-      navigate(`/jobs/${createdJob.id}`);
+      const data: unknown = await res.json();
+      const createdJob = JobSchema.parse(data);
+      void navigate(`/jobs/${createdJob.id}`);
     };
 
   return (

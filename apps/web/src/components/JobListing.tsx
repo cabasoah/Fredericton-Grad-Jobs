@@ -1,7 +1,13 @@
 import { useState } from "react"
 import {FaMapMarker} from "react-icons/fa"
 import { Link } from "react-router-dom";
-const JobListing = ({job}) => {
+import type { Job } from "@react-dev/shared";
+
+type JobListingProps = {
+    job: Job;
+};
+
+const JobListing = ({job}: JobListingProps) => {
     const [showFullDescription, setShowFullDescription] = useState(false);
     let description = job.description;
     const isLong = description.length > 90;

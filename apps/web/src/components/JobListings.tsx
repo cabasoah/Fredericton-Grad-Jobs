@@ -1,11 +1,15 @@
-import { useState,useEffect } from 'react'; 
+import { useState,useEffect } from 'react';
+import { JobListSchema, type Job } from '@react-dev/shared';
 import JobListing from './JobListing';
 import Spinner from './Spinner';
 
+type JobListingsProps = {
+  isHome?: boolean;
+};
 
-const JobListings = ({isHome = false}) => {
+const JobListings = ({isHome = false}: JobListingsProps) => {
   //  const jobsListings = isHome ? jobs.slice(0, 3): jobs;
-  const[jobs, setJobs] = useState([]);
+  const[jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadCount, setReloadCount] = useState(0);
@@ -18,8 +22,8 @@ const JobListings = ({isHome = false}) => {
         if (!res.ok) {
           throw new Error(`Request failed with status ${res.status}`);
         }
-        const data = await res.json();
-        setJobs(data);
+        const data: unknown = await res.json();
+        setJobs(JobListSchema.parse(data));
       } catch (error) {
         console.log('Error fetching data',error);
         setError(true);
@@ -29,7 +33,7 @@ const JobListings = ({isHome = false}) => {
 
     };
 
-    fetchJobs();
+    void fetchJobs();
   },[isHome, reloadCount]);
 
   const retry = () => {

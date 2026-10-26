@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useLoaderData, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import type { jobLoader } from '../loaders/jobLoader';
 
 const JobPage = () => {
-    const jobData = useLoaderData();
+    const jobData = useLoaderData<typeof jobLoader>();
     const navigate = useNavigate();
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState("");
@@ -19,7 +20,7 @@ const JobPage = () => {
             if (!res.ok) {
                 throw new Error(`Request failed with status ${res.status}`);
             }
-            navigate('/jobs');
+            void navigate('/jobs');
         } catch (err) {
             console.error('Error deleting job', err);
             setDeleteError('Could not delete the job. Please try again.');
@@ -107,7 +108,7 @@ const JobPage = () => {
                     className="bg-indigo-500 hover:bg-indigo-600 text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                     >Edit Job</Link>
                 <button
-                    onClick={onDeleteClick}
+                    onClick={() => void onDeleteClick()}
                     disabled={deleting}
                     className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -125,17 +126,4 @@ const JobPage = () => {
     );
 }
 
-// Data loader function to fetch job data
-const JobLoader = async({params}) => {
-    const res = await fetch('/api/jobs/' + params.id);
-    if (res.status === 404) {
-        throw new Response('Job not found', { status: 404, statusText: 'Not Found' });
-    }
-    if (!res.ok) {
-        throw new Response('Failed to load job', { status: res.status, statusText: res.statusText });
-    }
-    const data = await res.json();
-    return data;
-};
-
-export {JobPage as default, JobLoader};
+export default JobPage;

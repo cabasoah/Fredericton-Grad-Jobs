@@ -1,11 +1,13 @@
 import { useLoaderData, useNavigate } from "react-router-dom";
+import type { JobInput } from "@react-dev/shared";
 import JobForm from "../components/JobForm";
+import type { jobLoader } from "../loaders/jobLoader";
 
 const EditJobPage = () => {
-    const job = useLoaderData();
+    const job = useLoaderData<typeof jobLoader>();
     const navigate = useNavigate();
 
-    const updateJob = async (updatedJob) => {
+    const updateJob = async (updatedJob: JobInput) => {
       const res = await fetch(`/api/jobs/${job.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -14,7 +16,7 @@ const EditJobPage = () => {
       if (!res.ok) {
         throw new Error(`Request failed with status ${res.status}`);
       }
-      navigate(`/jobs/${job.id}`);
+      void navigate(`/jobs/${job.id}`);
     };
 
   return (
