@@ -5,8 +5,11 @@ A job board built with React, TypeScript and Vite on the front end and an Expres
 ## What it does today
 
 - Home page with a hero, two call-to-action cards and the 3 most recent jobs
-- Jobs page listing jobs 20 at a time with a "Load more" button, an error message and Retry button if the API is unreachable, and an empty state when there are no jobs
-- Job detail page with type, work arrangement, salary range, and company and contact info
+- Jobs page with search (title, description and company) and filters for job type, work arrangement, location, minimum salary and tags, plus sorting by newest or salary. Filters live in the URL, so a filtered view can be shared or bookmarked and survives a refresh. Jobs load 20 at a time with a "Load more" button.
+- Loading placeholders shaped like the job cards, an error message with Retry if the API is unreachable, and empty states ("No jobs match these filters" with a Clear filters button)
+- Job detail page with type, work arrangement, full salary range, how long ago it was posted, tags, an Apply link when the employer gave one, and company and contact info
+- Pop-up notifications when a job is posted, updated or deleted, or when that fails. Deleting removes the job from the list immediately and puts it back if the server refuses.
+- On phones the navigation collapses into a menu button
 - Accounts: register as a **job seeker** or an **employer** (employers create their company at sign-up), log in and log out. The navbar shows Login/Register or your name and Logout.
 - Employers add jobs (`/add-job`) for their own company. Only the employer who posted a job sees Edit and Delete for it, and only they can change it (`/edit-job/:id`). Imported jobs cannot be edited by anyone. Form input is validated with the same Zod schemas the API uses, with errors shown under each field.
 - Visiting an employer-only page while signed out redirects to the login page and back afterwards.
@@ -25,7 +28,7 @@ docker-compose.yml  PostgreSQL for local development
 
 ## Tech
 
-React 19, React Router 7, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, pino, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
+React 19, React Router 7, TanStack Query 5, React Hook Form, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, pino, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
 
 ## Running it
 
