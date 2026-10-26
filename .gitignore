@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Generated Prisma client (run `npm run db:generate`)
+apps/api/src/generated

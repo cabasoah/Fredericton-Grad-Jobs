@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // The generated Prisma client imports its own files with .ts extensions.
+    // Allowed because the API runs through tsx and never emits JS.
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "prisma", "prisma.config.ts"]
+}

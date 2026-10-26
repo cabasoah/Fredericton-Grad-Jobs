@@ -2,3 +2,5 @@
 package-lock.json
 # Data file rewritten by json-server at runtime
 apps/web/db
+apps/api/src/generated
+apps/api/prisma/migrations

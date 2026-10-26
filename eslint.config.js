@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['**/dist']),
+  globalIgnores(['**/dist', 'apps/api/src/generated']),
   {
     // Plain JS config files (e.g. this one) run in Node.
     files: ['**/*.{js,mjs}'],
@@ -33,7 +33,7 @@ export default defineConfig([
       },
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
     },
   },
   {

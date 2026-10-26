@@ -1,0 +1,113 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+// The connection URL comes from prisma.config.ts (DATABASE_URL).
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum RemoteType {
+  ONSITE
+  HYBRID
+  REMOTE
+}
+
+enum JobSource {
+  MANUAL
+  GREENHOUSE
+  LEVER
+}
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+model Company {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  website      String?
+  logoUrl      String?
+  contactEmail String?
+  contactPhone String?
+  createdAt    DateTime @default(now())
+
+  jobs Job[]
+}
+
+model Job {
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  type        JobType
+  remote      RemoteType @default(ONSITE)
+  location    String
+  salaryMin   Int?
+  salaryMax   Int?
+  currency    String     @default("CAD")
+  tags        String[]   @default([])
+  source      JobSource  @default(MANUAL)
+  externalId  String?
+  externalUrl String?
+  status      JobStatus  @default(OPEN)
+  postedAt    DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
+  postedById String?
+  postedBy   User?   @relation(fields: [postedById], references: [id], onDelete: SetNull)
+
+  applications Application[]
+
+  @@unique([source, externalId])
+  @@index([postedAt])
+  @@index([companyId])
+}
+
+// Minimal for now; filled in with auth in a later phase.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  postedJobs   Job[]
+  applications Application[]
+}
+
+// Minimal for now; the personal application tracker comes in a later phase.
+model Application {
+  id        String            @id @default(cuid())
+  status    ApplicationStatus @default(SAVED)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+}
