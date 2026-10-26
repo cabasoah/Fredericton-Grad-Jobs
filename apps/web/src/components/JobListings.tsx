@@ -1,102 +1,66 @@
-import { useState,useEffect } from 'react';
-import { JobListResponseSchema, type Job } from '@fredericton-grad-jobs/shared';
-import { apiFetch } from '@/lib/api';
+import type { ReactNode } from 'react';
+import type { JobFilters } from '@/lib/api';
+import { useJobs } from '@/lib/queries/jobs';
+import JobCardSkeleton from './JobCardSkeleton';
 import JobListing from './JobListing';
-import Spinner from './Spinner';
 
 type JobListingsProps = {
-  isHome?: boolean;
+  heading: string;
+  filters?: JobFilters;
+  pageSize: number;
+  // Show a "Load more" button while the API reports more pages.
+  showLoadMore?: boolean;
+  // Shown when the request succeeds with no jobs.
+  emptyState: ReactNode;
 };
 
-const HOME_LIMIT = 3;
-const PAGE_LIMIT = 20;
+const skeletons = (count: number) =>
+  Array.from({ length: count }, (_, index) => <JobCardSkeleton key={`skeleton-${index}`} />);
 
-const fetchJobsPage = async (limit: number, cursor?: string) => {
-  const params = new URLSearchParams({ limit: String(limit) });
-  if (cursor) params.set('cursor', cursor);
-  return JobListResponseSchema.parse(await apiFetch(`/jobs?${params.toString()}`));
-};
-
-const JobListings = ({isHome = false}: JobListingsProps) => {
-  const[jobs, setJobs] = useState<Job[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState(false);
-  const [reloadCount, setReloadCount] = useState(0);
-
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const page = await fetchJobsPage(isHome ? HOME_LIMIT : PAGE_LIMIT);
-        setJobs(page.data);
-        setNextCursor(page.nextCursor);
-      } catch (error) {
-        console.log('Error fetching data',error);
-        setError(true);
-      }finally{
-        setLoading(false);
-      }
-
-    };
-
-    void fetchJobs();
-  },[isHome, reloadCount]);
-
-  const retry = () => {
-    setError(false);
-    setLoading(true);
-    setReloadCount((count) => count + 1);
-  };
-
-  const loadMore = async () => {
-    if (!nextCursor) return;
-    setLoadingMore(true);
-    try {
-      const page = await fetchJobsPage(PAGE_LIMIT, nextCursor);
-      setJobs((current) => [...current, ...page.data]);
-      setNextCursor(page.nextCursor);
-    } catch (error) {
-      console.log('Error fetching more jobs', error);
-      setError(true);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+const JobListings = ({ heading, filters = {}, pageSize, showLoadMore = false, emptyState }: JobListingsProps) => {
+  const { data, status, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useJobs(filters, pageSize);
+  const jobs = data?.pages.flatMap((page) => page.data) ?? [];
 
   return (
       <section className="bg-blue-50 px-4 py-10">
         <div className="container-xl lg:container m-auto">
           <h2 className="text-3xl font-bold text-indigo-500 mb-6 text-center">
-            {isHome ? "Recent Jobs": "Browse Jobs"}
+            {heading}
           </h2>
-            { loading ? (<Spinner loading={loading}/>) : error ? (
+            { status === 'pending' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="status" aria-label="Loading jobs">
+                {skeletons(Math.min(pageSize, 6))}
+              </div>
+            ) : status === 'error' ? (
               <div className="text-center" role="alert">
                 <p className="text-red-600 mb-4">Could not load jobs. Please try again.</p>
                 <button
-                  onClick={retry}
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg"
+                  onClick={() => void refetch()}
+                  disabled={isRefetching}
+                  className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
                 >
-                  Retry
+                  {isRefetching ? 'Retrying...' : 'Retry'}
                 </button>
               </div>
             ) : jobs.length === 0 ? (
-              <p className="text-center text-gray-600">No jobs posted yet.</p>
+              emptyState
             ) : (
               <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {jobs.map((job) => (
                   <JobListing key={job.id} job={job} />
                 ))}
+                {isFetchingNextPage && skeletons(3)}
               </div>
-              {!isHome && nextCursor && (
+              {showLoadMore && hasNextPage && (
                 <div className="text-center mt-8">
                   <button
-                    onClick={() => void loadMore()}
-                    disabled={loadingMore}
+                    onClick={() => void fetchNextPage()}
+                    disabled={isFetchingNextPage}
                     className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
                   >
-                    {loadingMore ? 'Loading...' : 'Load more'}
+                    {isFetchingNextPage ? 'Loading...' : 'Load more'}
                   </button>
                 </div>
               )}

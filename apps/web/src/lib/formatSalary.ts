@@ -24,3 +24,23 @@ export const formatSalary = ({ salaryMin, salaryMax, currency }: SalaryFields) =
   if (salaryMax !== null) return `Up to ${formatAmount(salaryMax, currency)} / Year`;
   return "Salary not listed";
 };
+
+const formatFullAmount = (amount: number, currency: string) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+// Full amounts for the job page, e.g. "$70,000 – $80,000 per year" or
+// "CA$60,000 – CA$75,000 per year".
+export const formatSalaryRange = ({ salaryMin, salaryMax, currency }: SalaryFields) => {
+  if (salaryMin !== null && salaryMax !== null) {
+    return salaryMin === salaryMax
+      ? `${formatFullAmount(salaryMin, currency)} per year`
+      : `${formatFullAmount(salaryMin, currency)} – ${formatFullAmount(salaryMax, currency)} per year`;
+  }
+  if (salaryMin !== null) return `From ${formatFullAmount(salaryMin, currency)} per year`;
+  if (salaryMax !== null) return `Up to ${formatFullAmount(salaryMax, currency)} per year`;
+  return "Salary not listed";
+};

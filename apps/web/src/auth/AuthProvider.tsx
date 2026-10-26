@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  AuthResponseSchema,
-  LoginSchema,
-  RegisterSchema,
-  type LoginInput,
-  type RegisterInput,
-  type User,
-} from "@fredericton-grad-jobs/shared";
-import { ApiError, apiFetch, jsonRequest } from "@/lib/api";
+import type { LoginInput, RegisterInput, User } from "@fredericton-grad-jobs/shared";
+import { api, ApiError } from "@/lib/api";
 import { AuthContext, type AuthContextValue } from "./AuthContext";
 
 // Holds the signed-in user. The session itself is an httpOnly cookie the
@@ -19,7 +12,7 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        setUser(AuthResponseSchema.parse(await apiFetch("/auth/me")).user);
+        setUser(await api.me());
       } catch (err) {
         // 401 just means "not signed in".
         if (!(err instanceof ApiError && err.status === 401)) {
@@ -34,21 +27,19 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback(async (input: LoginInput) => {
-    const body = LoginSchema.parse(input);
-    const signedIn = AuthResponseSchema.parse(await apiFetch("/auth/login", jsonRequest("POST", body))).user;
+    const signedIn = await api.login(input);
     setUser(signedIn);
     return signedIn;
   }, []);
 
   const register = useCallback(async (input: RegisterInput) => {
-    const body = RegisterSchema.parse(input);
-    const created = AuthResponseSchema.parse(await apiFetch("/auth/register", jsonRequest("POST", body))).user;
+    const created = await api.register(input);
     setUser(created);
     return created;
   }, []);
 
   const logout = useCallback(async () => {
-    await apiFetch("/auth/logout", { method: "POST" });
+    await api.logout();
     setUser(null);
   }, []);
 

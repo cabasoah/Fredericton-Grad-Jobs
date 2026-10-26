@@ -8,7 +8,11 @@ const HomePage = () => {
     <>
         <Hero/>
         <HomeCards />
-        <JobListings isHome = {true} />
+        <JobListings
+          heading="Recent Jobs"
+          pageSize={3}
+          emptyState={<p className="text-center text-gray-600">No jobs posted yet.</p>}
+        />
         <ViewAllJobs />
     </>
   )

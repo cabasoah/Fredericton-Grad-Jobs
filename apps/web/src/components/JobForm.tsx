@@ -25,6 +25,7 @@ export type JobFormFields = {
   salaryMax: number | null;
   currency: string;
   tags: string[];
+  externalUrl: string | null;
 };
 
 type JobFormProps = {
@@ -52,6 +53,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJo
     const [salaryMax, setSalaryMax] = useState(initialJob?.salaryMax?.toString() ?? "");
     const [currency, setCurrency] = useState<string>(initialJob?.currency ?? "CAD");
     const [tags, setTags] = useState(initialJob?.tags.join(", ") ?? "");
+    const [externalUrl, setExternalUrl] = useState(initialJob?.externalUrl ?? "");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<{ message: string; details: string[] } | null>(null);
 
@@ -73,6 +75,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJo
         salaryMax: toAmount(salaryMax),
         currency,
         tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        externalUrl: externalUrl.trim() === "" ? null : externalUrl.trim(),
       };
       try {
         await onSubmit(fields);
@@ -172,7 +175,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJo
                     name="salary_min"
                     className="border rounded w-full py-2 px-3"
                     min={0}
-                    step={1000}
+                    step={1}
                     placeholder="eg. 60000"
                     value={salaryMin}
                     onChange={(e) => setSalaryMin(e.target.value)}
@@ -186,7 +189,7 @@ const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJo
                     name="salary_max"
                     className="border rounded w-full py-2 px-3"
                     min={0}
-                    step={1000}
+                    step={1}
                     placeholder="eg. 75000"
                     value={salaryMax}
                     onChange={(e) => setSalaryMax(e.target.value)}
@@ -236,6 +239,20 @@ const JobForm = ({ heading, submitLabel, submittingLabel, companyName, initialJo
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
               />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="external_url" className="block text-gray-700 font-bold mb-2">Application Link</label>
+              <input
+                type="url"
+                id="external_url"
+                name="external_url"
+                className="border rounded w-full py-2 px-3"
+                placeholder="Optional, eg. https://example.com/careers/123"
+                value={externalUrl}
+                onChange={(e) => setExternalUrl(e.target.value)}
+              />
+              <p className="text-gray-600 text-sm mt-1">Shown as an Apply button on the job page.</p>
             </div>
 
             <div className="mb-6 bg-indigo-50 rounded p-3">

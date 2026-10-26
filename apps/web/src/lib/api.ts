@@ -1,4 +1,20 @@
-import { ErrorResponseSchema } from "@fredericton-grad-jobs/shared";
+import {
+  AuthResponseSchema,
+  ErrorResponseSchema,
+  JobCreateSchema,
+  JobListResponseSchema,
+  JobSchema,
+  JobUpdateSchema,
+  LoginSchema,
+  RegisterSchema,
+  type JobCreateInput,
+  type JobSort,
+  type JobType,
+  type JobUpdate,
+  type LoginInput,
+  type RegisterInput,
+  type RemoteType,
+} from "@fredericton-grad-jobs/shared";
 import { ZodError } from "zod";
 import { API_URL } from "@/config";
 
@@ -45,6 +61,58 @@ export const jsonRequest = (method: "POST" | "PATCH", body: unknown): RequestIni
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
+
+// Filters for GET /jobs, as the UI holds them (all optional).
+export type JobFilters = {
+  q?: string;
+  type?: JobType;
+  remote?: RemoteType;
+  location?: string;
+  salaryMin?: number;
+  tags?: string[];
+  sort?: JobSort;
+};
+
+export const jobListSearch = (filters: JobFilters, limit: number, cursor?: string) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (filters.q) params.set("q", filters.q);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.remote) params.set("remote", filters.remote);
+  if (filters.location) params.set("location", filters.location);
+  if (filters.salaryMin !== undefined) params.set("salaryMin", String(filters.salaryMin));
+  if (filters.tags?.length) params.set("tags", filters.tags.join(","));
+  if (filters.sort) params.set("sort", filters.sort);
+  if (cursor) params.set("cursor", cursor);
+  return params.toString();
+};
+
+const jobPath = (id: string) => `/jobs/${encodeURIComponent(id)}`;
+
+// Typed API client: every request body is validated with the shared schema
+// before sending, and every response is validated before it is returned.
+export const api = {
+  listJobs: async (filters: JobFilters, limit: number, cursor?: string) =>
+    JobListResponseSchema.parse(await apiFetch(`/jobs?${jobListSearch(filters, limit, cursor)}`)),
+  getJob: async (id: string) => JobSchema.parse(await apiFetch(jobPath(id))),
+  createJob: async (input: JobCreateInput) =>
+    JobSchema.parse(await apiFetch("/jobs", jsonRequest("POST", JobCreateSchema.parse(input)))),
+  updateJob: async (id: string, input: JobUpdate) =>
+    JobSchema.parse(await apiFetch(jobPath(id), jsonRequest("PATCH", JobUpdateSchema.parse(input)))),
+  deleteJob: async (id: string) => {
+    await apiFetch(jobPath(id), { method: "DELETE" });
+  },
+
+  me: async () => AuthResponseSchema.parse(await apiFetch("/auth/me")).user,
+  login: async (input: LoginInput) =>
+    AuthResponseSchema.parse(await apiFetch("/auth/login", jsonRequest("POST", LoginSchema.parse(input)))).user,
+  register: async (input: RegisterInput) =>
+    AuthResponseSchema.parse(
+      await apiFetch("/auth/register", jsonRequest("POST", RegisterSchema.parse(input))),
+    ).user,
+  logout: async () => {
+    await apiFetch("/auth/logout", { method: "POST" });
+  },
+};
 
 // Turns a failed save into a message plus per-field details for the form.
 // Handles client-side Zod validation errors and API errors.

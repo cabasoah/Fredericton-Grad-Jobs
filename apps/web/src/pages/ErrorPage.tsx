@@ -1,6 +1,8 @@
 import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom"
 import { FaExclamationTriangle } from "react-icons/fa"
 
+// errorElement for every route: loader errors (e.g. a 404 job) and render
+// errors in a page show here, inside the layout, without taking down the app.
 function ErrorPage() {
   const error = useRouteError();
   const notFound = isRouteErrorResponse(error) && error.status === 404;
@@ -8,9 +10,9 @@ function ErrorPage() {
   console.error(error);
 
   return (
-    <section className="text-center flex flex-col justify-center items-center h-96">
+    <section className="text-center flex flex-col justify-center items-center min-h-96 py-12 px-4">
       <FaExclamationTriangle className="text-yellow-400 text-6xl mb-4" />
-      <h1 className="text-6xl font-bold mb-4">
+      <h1 className="text-4xl sm:text-6xl font-bold mb-4">
         {notFound ? "Job Not Found" : "Something Went Wrong"}
       </h1>
       <p className="text-xl mb-5">

@@ -1,35 +1,27 @@
-import { useState } from 'react';
-import { useLoaderData, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
+import { useNavigate, useParams } from 'react-router-dom';
+import { FaArrowLeft, FaExternalLinkAlt, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS } from '@fredericton-grad-jobs/shared';
-import type { jobLoader } from '@/loaders/jobLoader';
 import { useAuth } from '@/auth/AuthContext';
-import { apiFetch } from '@/lib/api';
-import { formatSalary } from '@/lib/formatSalary';
+import { formatRelativeTime } from '@/lib/formatRelativeTime';
+import { formatSalaryRange } from '@/lib/formatSalary';
 import { canManageJob } from '@/lib/permissions';
+import { useDeleteJob, useJob } from '@/lib/queries/jobs';
 
 const JobPage = () => {
-    const jobData = useLoaderData<typeof jobLoader>();
+    const { id = '' } = useParams();
+    const { data: jobData } = useJob(id);
     const { user } = useAuth();
     const canManage = canManageJob(user, jobData);
     const navigate = useNavigate();
-    const [deleting, setDeleting] = useState(false);
-    const [deleteError, setDeleteError] = useState("");
+    const deleteJob = useDeleteJob();
 
-    const onDeleteClick = async () => {
+    // Optimistic: leave for the list straight away. The job is already gone
+    // from it; if the delete fails it is restored and a toast explains why.
+    const onDeleteClick = () => {
         if (!window.confirm('Are you sure you want to delete this job?')) return;
-
-        setDeleting(true);
-        setDeleteError("");
-        try {
-            await apiFetch(`/jobs/${encodeURIComponent(jobData.id)}`, { method: 'DELETE' });
-            void navigate('/jobs');
-        } catch (err) {
-            console.error('Error deleting job', err);
-            setDeleteError('Could not delete the job. Please try again.');
-            setDeleting(false);
-        }
+        deleteJob.mutate(jobData);
+        void navigate('/jobs');
     };
 
     return (
@@ -62,6 +54,32 @@ const JobPage = () => {
                     <FaMapMarker className="text-orange-700 mr-2"/>
                     <p className="text-orange-700">{jobData.location}</p>
                 </div>
+                <p className="text-gray-500 text-sm">
+                    Posted{' '}
+                    <time dateTime={jobData.postedAt} title={new Date(jobData.postedAt).toLocaleString()}>
+                        {formatRelativeTime(jobData.postedAt)}
+                    </time>
+                </p>
+                {jobData.tags.length > 0 && (
+                    <ul className="flex flex-wrap gap-2 mt-4 justify-center md:justify-start" aria-label="Tags">
+                        {jobData.tags.map((tag) => (
+                            <li key={tag} className="bg-indigo-100 text-indigo-800 text-sm rounded-full px-3 py-1">
+                                {tag}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {jobData.externalUrl && (
+                    <a
+                        href={jobData.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-full"
+                    >
+                        Apply <FaExternalLinkAlt aria-hidden className="text-sm" />
+                        <span className="sr-only">(opens in a new tab)</span>
+                    </a>
+                )}
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">
@@ -69,13 +87,13 @@ const JobPage = () => {
                     Job Description
                 </h3>
 
-                <p className="mb-4">
+                <p className="mb-4 whitespace-pre-line">
                     {jobData.description}
                 </p>
 
                 <h3 className="text-indigo-800 text-lg font-bold mb-2">Salary</h3>
 
-                <p className="mb-4">{formatSalary(jobData)}</p>
+                <p className="mb-4">{formatSalaryRange(jobData)}</p>
                 </div>
             </main>
 
@@ -95,7 +113,7 @@ const JobPage = () => {
 
                 <h3 className="text-xl">Contact Email:</h3>
 
-                <p className="my-2 bg-indigo-100 p-2 font-bold">
+                <p className="my-2 bg-indigo-100 p-2 font-bold break-words">
                     {jobData.company.contactEmail ?? 'Not provided'}
                 </p>
 
@@ -113,15 +131,11 @@ const JobPage = () => {
                     className="bg-indigo-500 hover:bg-indigo-600 text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                     >Edit Job</Link>
                 <button
-                    onClick={() => void onDeleteClick()}
-                    disabled={deleting}
-                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={onDeleteClick}
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                 >
-                    {deleting ? 'Deleting Job...' : 'Delete Job'}
+                    Delete Job
                 </button>
-                {deleteError && (
-                    <p className="text-red-600 mt-4" role="alert">{deleteError}</p>
-                )}
                 </div>
                 )}
             </aside>

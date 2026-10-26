@@ -3,7 +3,6 @@ import { Navigate, useLocation } from "react-router-dom";
 import { USER_ROLE_LABELS, type UserRole } from "@fredericton-grad-jobs/shared";
 import { useAuth } from "@/auth/AuthContext";
 import AccessDenied from "./AccessDenied";
-import Spinner from "./Spinner";
 
 type RequireRoleProps = {
   role: UserRole;
@@ -17,7 +16,13 @@ const RequireRole = ({ role, children }: RequireRoleProps) => {
   const { status, user } = useAuth();
   const location = useLocation();
 
-  if (status === "loading") return <Spinner loading />;
+  if (status === "loading") {
+    return (
+      <p role="status" className="text-center text-gray-600 py-24 animate-pulse">
+        Checking your account...
+      </p>
+    );
+  }
   if (!user) {
     const returnTo = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />;

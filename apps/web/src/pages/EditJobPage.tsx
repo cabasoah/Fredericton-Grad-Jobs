@@ -1,17 +1,17 @@
-import { useLoaderData, useNavigate } from "react-router-dom";
-import { JobUpdateSchema } from "@fredericton-grad-jobs/shared";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import AccessDenied from "@/components/AccessDenied";
 import JobForm, { type JobFormFields } from "@/components/JobForm";
-import { apiFetch, jsonRequest } from "@/lib/api";
 import { canManageJob } from "@/lib/permissions";
-import type { jobLoader } from "@/loaders/jobLoader";
+import { useJob, useUpdateJob } from "@/lib/queries/jobs";
 
 // Rendered inside <RequireRole role="EMPLOYER">.
 const EditJobPage = () => {
-    const job = useLoaderData<typeof jobLoader>();
+    const { id = "" } = useParams();
+    const { data: job } = useJob(id);
     const { user } = useAuth();
     const navigate = useNavigate();
+    const updateJob = useUpdateJob();
 
     if (!canManageJob(user, job)) {
       return (
@@ -25,10 +25,10 @@ const EditJobPage = () => {
       );
     }
 
-    const updateJob = async (fields: JobFormFields) => {
-      // Same schema the API validates with; throws ZodError for the form to show.
-      const body = JobUpdateSchema.parse(fields);
-      await apiFetch(`/jobs/${encodeURIComponent(job.id)}`, jsonRequest("PATCH", body));
+    // The API client validates with the shared schema first; a ZodError or
+    // ApiError is shown under the form (and as a toast for API errors).
+    const saveJob = async (fields: JobFormFields) => {
+      await updateJob.mutateAsync({ id: job.id, input: fields });
       void navigate(`/jobs/${job.id}`);
     };
 
@@ -40,7 +40,7 @@ const EditJobPage = () => {
       submittingLabel="Updating Job..."
       companyName={job.company.name}
       initialJob={job}
-      onSubmit={updateJob}
+      onSubmit={saveJob}
     />
   )
 }
