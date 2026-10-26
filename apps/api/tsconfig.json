@@ -6,5 +6,5 @@
     // Allowed because the API runs through tsx and never emits JS.
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "prisma", "prisma.config.ts"]
+  "include": ["src", "prisma", "prisma.config.ts", "vitest.config.ts"]
 }
