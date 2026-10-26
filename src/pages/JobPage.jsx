@@ -1,12 +1,31 @@
-// import {useState, useEffect} from 'react';
-import { useParams, useLoaderData } from 'react-router-dom';
+import { useState } from 'react';
+import { useLoaderData, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMapMarker } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import Spinner from '../components/Spinner';
 
 const JobPage = () => {
-    const {id} = useParams();
     const jobData = useLoaderData();
+    const navigate = useNavigate();
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+
+    const onDeleteClick = async () => {
+        if (!window.confirm('Are you sure you want to delete this job?')) return;
+
+        setDeleting(true);
+        setDeleteError("");
+        try {
+            const res = await fetch(`/api/jobs/${jobData.id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                throw new Error(`Request failed with status ${res.status}`);
+            }
+            navigate('/jobs');
+        } catch (err) {
+            console.error('Error deleting job', err);
+            setDeleteError('Could not delete the job. Please try again.');
+            setDeleting(false);
+        }
+    };
 
     return (
         <>
@@ -88,10 +107,15 @@ const JobPage = () => {
                     className="bg-indigo-500 hover:bg-indigo-600 text-white text-center font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
                     >Edit Job</Link>
                 <button
-                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block"
+                    onClick={onDeleteClick}
+                    disabled={deleting}
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full w-full focus:outline-none focus:shadow-outline mt-4 block disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Delete Job
+                    {deleting ? 'Deleting Job...' : 'Delete Job'}
                 </button>
+                {deleteError && (
+                    <p className="text-red-600 mt-4" role="alert">{deleteError}</p>
+                )}
                 </div>
             </aside>
             </div>
