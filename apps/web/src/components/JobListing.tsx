@@ -2,6 +2,7 @@ import { useState } from "react"
 import {FaMapMarker} from "react-icons/fa"
 import { Link } from "react-router-dom";
 import type { Job } from "@fredericton-grad-jobs/shared";
+import { truncateDescription } from "@/lib/truncateDescription";
 
 type JobListingProps = {
     job: Job;
@@ -9,12 +10,9 @@ type JobListingProps = {
 
 const JobListing = ({job}: JobListingProps) => {
     const [showFullDescription, setShowFullDescription] = useState(false);
-    let description = job.description;
-    const isLong = description.length > 90;
-
-    if(isLong && !showFullDescription){
-        description = description.substring(0,90) + '...';
-    }
+    const preview = truncateDescription(job.description);
+    const isLong = preview.truncated;
+    const description = showFullDescription ? job.description : preview.text;
   return (
      <div className="bg-white rounded-xl shadow-md relative">
                     <div className="p-4">
