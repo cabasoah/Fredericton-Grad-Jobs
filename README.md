@@ -4,7 +4,8 @@ A job board built with React, TypeScript and Vite on the front end and an Expres
 
 ## What it does today
 
-- Home page with a hero, two call-to-action cards and the 3 most recent jobs
+- Real job postings imported from public Greenhouse and Lever job boards (the companies are listed in `apps/api/src/ingest/companies.ts`). Postings that disappear from a board are marked closed. Imported descriptions are shown as sanitized HTML with an Apply link to the original posting, and cannot be edited.
+- Home page with live counts (open jobs per source and when jobs were last imported), two call-to-action cards and the 3 most recent jobs
 - Jobs page with search (title, description and company) and filters for job type, work arrangement, location, minimum salary and tags, plus sorting by newest or salary. Filters live in the URL, so a filtered view can be shared or bookmarked and survives a refresh. Jobs load 20 at a time with a "Load more" button.
 - Loading placeholders shaped like the job cards, an error message with Retry if the API is unreachable, and empty states ("No jobs match these filters" with a Clear filters button)
 - Job detail page with type, work arrangement, full salary range, how long ago it was posted, tags, an Apply link when the employer gave one, and company and contact info
@@ -28,7 +29,7 @@ docker-compose.yml  PostgreSQL for local development
 
 ## Tech
 
-React 19, React Router 7, TanStack Query 5, React Hook Form, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, pino, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
+React 19, React Router 7, TanStack Query 5, React Hook Form, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, pino, node-cron, sanitize-html, DOMPurify, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
 
 ## Running it
 
@@ -50,6 +51,7 @@ docker compose up -d db   # PostgreSQL on localhost:5433
 npm run db:migrate        # apply migrations and regenerate the Prisma client
 npm run db:seed           # sample jobs (only into an empty database) and demo employer accounts
 npm run dev               # API on http://localhost:4000, web app on http://localhost:3000
+npm run ingest            # optional: import real postings from the job boards once
 ```
 
 The seed prints one demo employer per sample company, e.g. `newtek-solutions@employers.example.com`, each owning that company's job. Their password is `SEED_USER_PASSWORD` from `apps/api/.env`.
@@ -76,10 +78,19 @@ All endpoints are under `/api/v1`. Errors use the shape `{ "error": { "code", "m
 | DELETE | `/jobs/:id` | The job's poster | 403 for anyone else and for imported jobs |
 | GET | `/companies` | Anyone | Each with its number of open jobs |
 | GET | `/companies/:id` | Anyone | With its open jobs |
+| GET | `/stats` | Anyone | Open jobs in total and per source, and when the last import without errors finished |
 
 Sessions are a JWT in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 1 hour; there is no refresh token, so users sign in again after that. Requests without a valid session get 401, and signed-in users without permission get 403.
 
 Write routes (POST, PATCH, DELETE on jobs) are rate limited to 60 requests per 15 minutes per client.
+
+## Job imports
+
+`npm run ingest` fetches every board in `apps/api/src/ingest/companies.ts` once (edit that list to change companies) and prints the rows it wrote to the `IngestRun` table: fetched, created, updated, closed and errors per company. Set `INGEST_CRON=true` in `apps/api/.env` to also run it every 6 hours while the API is running.
+
+- Jobs are matched on (source, posting id), so running it again never creates duplicates; postings no longer listed are marked closed.
+- Requests time out after 15 seconds, retry server and network errors with exponential backoff, pause 1 second between companies, and identify the project in their User-Agent.
+- Descriptions are sanitized to basic formatting and links before they are stored, and again in the browser before they are shown.
 
 ## Other scripts
 
@@ -91,6 +102,7 @@ npm run test:integration  # API tests against a jobs_test database (needs the db
 npm run build             # production build of the web app into apps/web/dist/
 npm run preview           # serve the production build
 npm run db:generate       # regenerate the Prisma client
+npm run ingest            # import postings from the job boards once
 npm run format            # Prettier (write)
 npm run format:check      # Prettier (check only)
 ```
@@ -101,5 +113,4 @@ Not built yet:
 
 - Personal application tracker (the `Application` table exists but is unused)
 - Inviting more employers to an existing company, password reset and email verification
-- Job imports from Greenhouse and Lever
 - A production build/start setup for the API (it currently runs with `tsx` in development only)
