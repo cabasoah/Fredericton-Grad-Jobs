@@ -9,6 +9,9 @@ const formatAmount = (amount: number, currency: string) =>
     style: "currency",
     currency,
     notation: "compact",
+    // Explicit minimum: the currency style defaults to 2 decimals, and newer
+    // ICU versions (e.g. Node 22.23) then print "$70.0K" instead of "$70K".
+    minimumFractionDigits: 0,
     maximumFractionDigits: 1,
   }).format(amount);
 
