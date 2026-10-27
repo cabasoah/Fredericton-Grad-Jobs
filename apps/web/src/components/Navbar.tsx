@@ -48,6 +48,11 @@ const Navbar = () => {
       {(!user || user.role === 'EMPLOYER') && (
         <NavLink to="/add-job" className={linkClass}>Add Job</NavLink>
       )}
+      {user?.role === 'SEEKER' && (
+        <>
+          <NavLink to="/tracker" className={linkClass}>Tracker</NavLink>
+        </>
+      )}
       {status === 'ready' && (user ? (
         <>
           <span className="text-indigo-100 px-3 py-2 truncate max-w-48" title={user.name}>{user.name}</span>

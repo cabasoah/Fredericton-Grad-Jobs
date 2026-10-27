@@ -24,6 +24,12 @@ import { queryClient } from "./lib/queryClient";
 // Loaders
 import { jobLoader } from "./loaders/jobLoader";
 
+// Seeker-only pages, split into their own chunks.
+const loadTrackerPage = async () => {
+  const { default: TrackerPage } = await import("./pages/TrackerPage");
+  return { element: <RequireRole role="SEEKER"><TrackerPage/></RequireRole> };
+};
+
 // Create Router. Every route has its own errorElement, so an error in one
 // page renders inside the layout (navbar still works); the root one catches
 // errors in the layout itself.
@@ -37,6 +43,8 @@ const router = createBrowserRouter(
       <Route path="/edit-job/:id" element={<RequireRole role="EMPLOYER"><EditJobPage/></RequireRole>} loader = {jobLoader} errorElement={<ErrorPage/>}/>
       <Route path="/login" element={<LoginPage/> } errorElement={<ErrorPage/>}/>
       <Route path="/register" element={<RegisterPage/> } errorElement={<ErrorPage/>}/>
+      {/* Loaded on demand: dnd-kit stays out of the main bundle. */}
+      <Route path="/tracker" lazy={loadTrackerPage} errorElement={<ErrorPage/>}/>
       <Route path="*" element={<NotFoundPage/> }/>
     </Route>
   )
