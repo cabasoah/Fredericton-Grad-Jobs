@@ -103,6 +103,21 @@ describe("POST /api/v1/auth/register", () => {
       { path: "password", message: "Password must be at least 10 characters" },
     ]);
   });
+
+  it("returns 400 for an employer without a company, an unknown role or a bad email", async () => {
+    const { company: _company, ...employerWithoutCompany } = employerBody;
+    for (const body of [
+      employerWithoutCompany,
+      { ...seekerBody, role: "ADMIN" },
+      { ...seekerBody, email: "not-an-email" },
+    ]) {
+      const res = await request(app).post("/api/v1/auth/register").send(body);
+      expect(res.status).toBe(400);
+      expect(errorOf(res).code).toBe("VALIDATION_ERROR");
+    }
+    expect(await db.user.count()).toBe(0);
+    expect(await db.company.count()).toBe(0);
+  });
 });
 
 describe("POST /api/v1/auth/login", () => {
@@ -114,6 +129,15 @@ describe("POST /api/v1/auth/login", () => {
     expect(res.status).toBe(200);
     expect(AuthResponseSchema.parse(res.body).user.email).toBe("sam@example.test");
     expect(sessionCookie(res)).toMatch(/HttpOnly/);
+  });
+
+  it("returns 400 without setting a cookie when the email or password is missing", async () => {
+    for (const body of [{ email: "sam@example.test" }, { password: TEST_PASSWORD }, {}]) {
+      const res = await request(app).post("/api/v1/auth/login").send(body);
+      expect(res.status).toBe(400);
+      expect(errorOf(res).code).toBe("VALIDATION_ERROR");
+      expect(sessionCookie(res)).toBeUndefined();
+    }
   });
 
   it("returns 401 with the same message for a wrong password and an unknown email", async () => {

@@ -131,6 +131,64 @@ describe("stage transitions", () => {
   });
 });
 
+describe("list, validation and delete", () => {
+  it("lists only your own applications, most recently updated first", async () => {
+    const { sam, ola } = await seekers();
+    const first = ApplicationSchema.parse((await sam.post("/api/v1/applications").send(external)).body);
+    await sam.post("/api/v1/applications").send({ ...external, roleTitle: "Data Analyst" });
+    await ola.post("/api/v1/applications").send({ ...external, roleTitle: "Ola's role" });
+    await sam.patch(`/api/v1/applications/${first.id}`).send({ notes: "touched last" });
+
+    const res = await sam.get("/api/v1/applications");
+    expect(res.status).toBe(200);
+    expect(ApplicationListResponseSchema.parse(res.body).data.map((a) => a.roleTitle)).toEqual([
+      "Junior Developer",
+      "Data Analyst",
+    ]);
+  });
+
+  it("returns 400 for invalid create bodies and stores nothing", async () => {
+    const { sam } = await seekers();
+    for (const body of [
+      {},
+      { companyName: "Acme" },
+      { ...external, stage: "HIRED" },
+      { ...external, url: "not a url" },
+      { ...external, appliedAt: "27/10/2026" },
+      { ...external, userId: "someone-else" },
+    ]) {
+      const res = await sam.post("/api/v1/applications").send(body);
+      expect(res.status).toBe(400);
+      expect(errorOf(res).code).toBe("VALIDATION_ERROR");
+    }
+    expect(await db.application.count()).toBe(0);
+  });
+
+  it("returns 400 for invalid updates and leaves the application unchanged", async () => {
+    const { sam } = await seekers();
+    const { id } = ApplicationSchema.parse((await sam.post("/api/v1/applications").send(external)).body);
+    for (const body of [{}, { stage: "HIRED" }, { userId: "someone-else" }, { companyName: "" }]) {
+      const res = await sam.patch(`/api/v1/applications/${id}`).send(body);
+      expect(res.status).toBe(400);
+      expect(errorOf(res).code).toBe("VALIDATION_ERROR");
+    }
+    const stored = ApplicationWithEventsSchema.parse((await sam.get(`/api/v1/applications/${id}`)).body);
+    expect(stored).toMatchObject({ stage: "APPLIED", companyName: "Elsewhere Inc" });
+    expect(stored.events).toHaveLength(1);
+  });
+
+  it("deletes your application together with its history", async () => {
+    const { sam } = await seekers();
+    const { id } = ApplicationSchema.parse((await sam.post("/api/v1/applications").send(external)).body);
+    await sam.patch(`/api/v1/applications/${id}`).send({ stage: "INTERVIEW" });
+
+    const res = await sam.delete(`/api/v1/applications/${id}`);
+    expect(res.status).toBe(204);
+    expect((await sam.get(`/api/v1/applications/${id}`)).status).toBe(404);
+    expect(await db.applicationEvent.count()).toBe(0);
+  });
+});
+
 describe("isolation between users", () => {
   it("returns 404, not 403, for another user's application and leaves it untouched", async () => {
     const { sam, ola } = await seekers();

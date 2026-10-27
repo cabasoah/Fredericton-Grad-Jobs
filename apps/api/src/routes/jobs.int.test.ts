@@ -60,6 +60,21 @@ const newJobBody = {
   salaryMax: 60000,
 };
 
+describe("GET /api/v1/jobs/:id", () => {
+  it("returns the job with its company, and 404 for an unknown id", async () => {
+    const acme = await createCompany(db, "Acme");
+    const job = await createJob(db, acme.id, { title: "Analyst" });
+
+    const res = await request(app).get(`/api/v1/jobs/${job.id}`);
+    expect(res.status).toBe(200);
+    expect(JobSchema.parse(res.body)).toMatchObject({ id: job.id, title: "Analyst", company: { name: "Acme" } });
+
+    const missing = await request(app).get("/api/v1/jobs/does-not-exist");
+    expect(missing.status).toBe(404);
+    expect(errorOf(missing)).toEqual({ code: "NOT_FOUND", message: "Job not found" });
+  });
+});
+
 describe("POST /api/v1/jobs", () => {
   it("lets an employer post a job for their own company", async () => {
     const { user, company } = await createEmployer(db, "erin@acme.test", "Acme");
