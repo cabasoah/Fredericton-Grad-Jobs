@@ -32,6 +32,9 @@ export type AppOptions = {
   exposeErrorStack: boolean;
   writeRateLimit?: RateLimitOptions;
   loginRateLimit?: LoginRateLimitOptions;
+  // Reverse proxies in front of the API, so req.ip (and the rate limits)
+  // see the client's address rather than the proxy's.
+  trustProxyHops?: number;
 };
 
 export const createApp = ({
@@ -42,8 +45,10 @@ export const createApp = ({
   exposeErrorStack,
   writeRateLimit = DEFAULT_WRITE_RATE_LIMIT,
   loginRateLimit = DEFAULT_LOGIN_RATE_LIMIT,
+  trustProxyHops = 0,
 }: AppOptions) => {
   const app = express();
+  app.set("trust proxy", trustProxyHops);
   // Shared by all write routes so they count against one limit per client.
   const writeLimiter = createWriteRateLimiter(writeRateLimit);
 

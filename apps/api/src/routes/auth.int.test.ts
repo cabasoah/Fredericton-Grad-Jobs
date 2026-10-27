@@ -188,6 +188,27 @@ describe("POST /api/v1/auth/login", () => {
     expect((await attempt("b@example.test")).status).toBe(401);
     expect((await attempt("c@example.test")).status).toBe(429);
   });
+
+  it("limits each client behind a trusted proxy separately", async () => {
+    // One proxy hop (nginx in docker compose): the client is the last
+    // address in X-Forwarded-For, not the proxy that connected.
+    const limited = createTestApp({
+      db,
+      trustProxyHops: 1,
+      loginRateLimit: {
+        perIp: { windowMs: 60_000, limit: 1 },
+        perEmail: { windowMs: 60_000, limit: 100 },
+      },
+    });
+    const attemptFrom = (ip: string) =>
+      request(limited)
+        .post("/api/v1/auth/login")
+        .set("X-Forwarded-For", ip)
+        .send({ email: "a@example.test", password: "whatever" });
+    expect((await attemptFrom("203.0.113.1")).status).toBe(401);
+    expect((await attemptFrom("203.0.113.2")).status).toBe(401);
+    expect((await attemptFrom("203.0.113.1")).status).toBe(429);
+  });
 });
 
 describe("GET /api/v1/auth/me and POST /api/v1/auth/logout", () => {

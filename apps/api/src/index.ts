@@ -1,7 +1,7 @@
 import { pino } from "pino";
 import { createApp } from "./app";
 import { createPrismaClient } from "./db";
-import { loadEnv } from "./env";
+import { loadEnv, secureCookies } from "./env";
 import { startIngestSchedule } from "./ingest/schedule";
 
 const env = loadEnv();
@@ -12,7 +12,8 @@ const app = createApp({
   db,
   logger,
   corsOrigins: env.CORS_ORIGIN,
-  session: { secret: env.JWT_SECRET, secureCookies: env.NODE_ENV === "production" },
+  session: { secret: env.JWT_SECRET, secureCookies: secureCookies(env) },
+  trustProxyHops: env.TRUST_PROXY,
   exposeErrorStack: env.NODE_ENV === "development",
 });
 

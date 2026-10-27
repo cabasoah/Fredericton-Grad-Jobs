@@ -26,12 +26,23 @@ const EnvSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  // Number of reverse proxies in front of the API (nginx, a hosting
+  // platform's load balancer). Rate limits key on the client IP, which is
+  // only correct when this matches. 0 = no proxy.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
+  // Mark the session cookie Secure (HTTPS only). Defaults to true in
+  // production; set "false" only for production builds served over plain
+  // HTTP on localhost (the docker compose stack).
+  COOKIE_SECURE: z.enum(["true", "false"]).optional(),
 }).refine((env) => !(env.NODE_ENV === "production" && env.JWT_SECRET === EXAMPLE_JWT_SECRET), {
   path: ["JWT_SECRET"],
   message: "Replace the example JWT_SECRET from .env.example before running in production",
 });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+export const secureCookies = (env: Pick<Env, "NODE_ENV" | "COOKIE_SECURE">) =>
+  env.COOKIE_SECURE ? env.COOKIE_SECURE === "true" : env.NODE_ENV === "production";
 
 // Reads .env from the working directory (apps/api) if present, then validates.
 export const loadEnv = (): Env => {
