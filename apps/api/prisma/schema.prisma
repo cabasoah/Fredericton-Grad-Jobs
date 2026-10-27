@@ -38,10 +38,11 @@ enum UserRole {
   EMPLOYER
 }
 
-enum ApplicationStatus {
+enum ApplicationStage {
   SAVED
   APPLIED
-  INTERVIEWING
+  OA
+  INTERVIEW
   OFFER
   REJECTED
   WITHDRAWN
@@ -134,17 +135,44 @@ model IngestRun {
   @@index([finishedAt])
 }
 
-// Minimal for now; the personal application tracker comes in a later phase.
+// A job seeker's tracked application: either a job on this board (jobId)
+// or one found elsewhere (jobId null). Company, title and URL are copied at
+// save time so the card survives the job closing or being deleted.
 model Application {
-  id        String            @id @default(cuid())
-  status    ApplicationStatus @default(SAVED)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id             String           @id @default(cuid())
+  companyName    String
+  roleTitle      String
+  url            String?
+  stage          ApplicationStage @default(SAVED)
+  // Set automatically the first time the stage reaches APPLIED or later.
+  appliedAt      DateTime?
+  nextFollowUpAt DateTime?
+  notes          String           @default("")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId  String
-  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId  String?
+  job    Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
 
+  events ApplicationEvent[]
+
+  // Postgres allows many NULLs here, so this only applies when jobId is set.
   @@unique([userId, jobId])
+  @@index([userId, stage])
+}
+
+// Append-only log of stage changes; rows are never updated.
+model ApplicationEvent {
+  id        String            @id @default(cuid())
+  // Null for the event that records the stage an application was created in.
+  fromStage ApplicationStage?
+  toStage   ApplicationStage
+  createdAt DateTime          @default(now())
+
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
 }

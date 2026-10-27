@@ -16,6 +16,7 @@ import {
   type LoginRateLimitOptions,
   type RateLimitOptions,
 } from "./middleware/rateLimit";
+import { applicationsRouter } from "./routes/applications";
 import { authRouter } from "./routes/auth";
 import { companiesRouter } from "./routes/companies";
 import { healthRouter } from "./routes/health";
@@ -64,6 +65,7 @@ export const createApp = ({
   v1.use("/jobs", jobsRouter(db, session, writeLimiter));
   v1.use("/companies", companiesRouter(db));
   v1.use("/stats", statsRouter(db));
+  v1.use("/applications", applicationsRouter(db, session));
   app.use("/api/v1", v1);
 
   app.use((req, _res, next) => {
