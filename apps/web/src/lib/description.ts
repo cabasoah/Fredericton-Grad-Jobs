@@ -16,5 +16,8 @@ export const safeDescriptionHtml = (html: string) =>
 export const descriptionText = (job: Pick<Job, "source" | "description">) => {
   if (!isHtmlDescription(job)) return job.description;
   const doc = new DOMParser().parseFromString(safeDescriptionHtml(job.description), "text/html");
+  // textContent joins blocks directly ("Requirements" + "Python"), so keep
+  // paragraphs, items and line breaks apart.
+  for (const block of doc.body.querySelectorAll("p, li, br, h2, h3, h4, blockquote")) block.after(" ");
   return (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
 };
