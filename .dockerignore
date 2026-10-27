@@ -1,0 +1,14 @@
+# Build context is the repo root (the images need the shared workspace).
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+apps/api/src/generated
+.git
+docs
+e2e
+test-results
+playwright-report
+**/*.log

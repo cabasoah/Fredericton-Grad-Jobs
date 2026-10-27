@@ -1,4 +1,10 @@
-# Local development database. Start with: docker compose up -d db
+# The whole app: `docker compose up --build`, then open http://localhost:8080
+# (demo employer logins use SEED_USER_PASSWORD, default demo-password-123).
+#
+# For local development only the database is needed:
+#   docker compose up -d db
+# and the API and web app run with `npm run dev`. Both setups share the
+# same database.
 services:
   db:
     image: postgres:17-alpine
@@ -9,7 +15,7 @@ services:
       POSTGRES_DB: jobs
     ports:
       # Host port 5433 so it does not clash with a locally installed PostgreSQL on 5432.
-      - "5433:5432"
+      - "${DB_PORT:-5433}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +23,41 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://jobs:jobs@db:5432/jobs?schema=public
+      # Local stack only. Real deployments set their own secret on the platform.
+      JWT_SECRET: ${JWT_SECRET:-docker-compose-local-only-secret-not-for-deploys}
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-8080}
+      # Served over plain HTTP on localhost, behind one proxy (the web container).
+      COOKIE_SECURE: "false"
+      TRUST_PROXY: "1"
+      SEED_ON_START: "true"
+      SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-demo-password-123}
+      INGEST_CRON: ${INGEST_CRON:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      db:
+        condition: service_healthy
+    # Not published: the web container proxies /api/ to it.
+    expose:
+      - "4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   db-data:
