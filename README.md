@@ -13,7 +13,13 @@ A job board built with React, TypeScript and Vite on the front end and an Expres
 - On phones the navigation collapses into a menu button
 - Accounts: register as a **job seeker** or an **employer** (employers create their company at sign-up), log in and log out. The navbar shows Login/Register or your name and Logout.
 - Employers add jobs (`/add-job`) for their own company. Only the employer who posted a job sees Edit and Delete for it, and only they can change it (`/edit-job/:id`). Imported jobs cannot be edited by anyone. Form input is validated with the same Zod schemas the API uses, with errors shown under each field.
-- Visiting an employer-only page while signed out redirects to the login page and back afterwards.
+- Job seekers have a personal application tracker:
+  - A Save button on job cards and job pages adds the job to the tracker as Saved.
+  - `/tracker` is a Kanban board with one column per stage (Saved, Applied, Online assessment, Interview, Offer, Rejected, Withdrawn). Cards move by dragging or with the keyboard (Space to pick up, Left/Right to change column, Space to drop, Escape to cancel). The move shows at once and is undone with a message if the server refuses it.
+  - Clicking a card opens a side panel with the stage, applied and follow-up dates, URL, notes, links to the job, and the history of every stage change.
+  - Applications to jobs found elsewhere can be added with a form, and all applications can be exported as a CSV file.
+  - `/dashboard` shows the response rate, a funnel of how many applications reached each stage, and applications per week for the last 12 weeks (Monday to Sunday, Atlantic time). Each chart can also be shown as a table.
+- Visiting an employer-only or seeker-only page while signed out redirects to the login page and back afterwards.
 - "Job Not Found" page for unknown job IDs and a 404 page for unknown routes
 
 ## Repository layout
@@ -29,7 +35,7 @@ docker-compose.yml  PostgreSQL for local development
 
 ## Tech
 
-React 19, React Router 7, TanStack Query 5, React Hook Form, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, pino, node-cron, sanitize-html, DOMPurify, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
+React 19, React Router 7, TanStack Query 5, React Hook Form, Vite 7, Tailwind CSS 4, TypeScript 6 (strict), Express 5, Prisma 7, PostgreSQL 17, Zod 4, dnd-kit, Recharts, pino, node-cron, sanitize-html, DOMPurify, Vitest, Supertest, ESLint with typescript-eslint, Prettier.
 
 ## Running it
 
@@ -79,6 +85,16 @@ All endpoints are under `/api/v1`. Errors use the shape `{ "error": { "code", "m
 | GET | `/companies` | Anyone | Each with its number of open jobs |
 | GET | `/companies/:id` | Anyone | With its open jobs |
 | GET | `/stats` | Anyone | Open jobs in total and per source, and when the last import without errors finished |
+| GET | `/applications` | Seekers | Your applications, most recently updated first. Returns `{ data }` |
+| GET | `/applications/stats` | Seekers | Counts per stage, the funnel, applications per ISO week for the last 12 weeks (by applied date, America/Moncton), and the response rate |
+| GET | `/applications/:id` | Seekers | One of your applications with its stage history |
+| POST | `/applications` | Seekers | Either `{ jobId }` to save a job from this board (409 if it is already in your tracker) or `companyName`, `roleTitle` and optional `url`, `stage`, `appliedAt`, `nextFollowUpAt`, `notes` for a job found elsewhere |
+| PATCH | `/applications/:id` | Seekers | Only the sent fields change. A stage change is recorded in the history; the applied date is set the first time it reaches Applied or later, if empty |
+| DELETE | `/applications/:id` | Seekers | Also deletes its history |
+
+Every `/applications` route only sees the signed-in seeker's own applications. Someone else's application gets 404, the same as one that does not exist, so its existence is not revealed.
+
+The response rate is the number of applications that reached Online assessment, Interview, Offer or Rejected, divided by the number that reached Applied or later. A withdrawn application counts towards the second number only if its history shows it reached Applied.
 
 Sessions are a JWT in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 1 hour; there is no refresh token, so users sign in again after that. Requests without a valid session get 401, and signed-in users without permission get 403.
 
@@ -111,6 +127,5 @@ npm run format:check      # Prettier (check only)
 
 Not built yet:
 
-- Personal application tracker (the `Application` table exists but is unused)
 - Inviting more employers to an existing company, password reset and email verification
 - A production build/start setup for the API (it currently runs with `tsx` in development only)
