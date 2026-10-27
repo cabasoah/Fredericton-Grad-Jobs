@@ -47,8 +47,11 @@ const JobFiltersBar = () => {
   const filters = filtersFromSearchParams(searchParams);
 
   // Typing -> URL (debounced). Replaces the history entry so Back does not
-  // step through every keystroke.
+  // step through every keystroke. Only once the debounce has caught up with
+  // the inputs: right after the URL changes elsewhere (Clear filters, Back),
+  // the debounced value is stale and would put the old text back.
   useEffect(() => {
+    if (!sameDrafts(debouncedDrafts, drafts)) return;
     updateSearchParams(
       (next) => {
         for (const key of TEXT_FILTER_KEYS) {
@@ -59,7 +62,7 @@ const JobFiltersBar = () => {
       },
       { replace: true },
     );
-  }, [debouncedDrafts, updateSearchParams]);
+  }, [debouncedDrafts, drafts, updateSearchParams]);
 
   // URL -> inputs, when the URL changes from elsewhere (Back/Forward, a
   // shared link, Clear filters) rather than from typing.
