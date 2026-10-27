@@ -105,3 +105,6 @@ More: [development and tests](docs/DEVELOPMENT.md), [API reference](docs/API.md)
 1. Split the remaining pages into separately loaded chunks to bring the main bundle under 500 kB and lift the mobile performance scores.
 2. Password reset and email verification.
 3. Reminders for the follow-up dates the tracker already stores.
+
+## How this was built
+Developed with AI assistance. Claude (Anthropic) wrote and reviewed much of the code. I directed the project, ran and checked every result.
