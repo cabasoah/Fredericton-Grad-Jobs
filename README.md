@@ -113,8 +113,10 @@ Write routes (POST, PATCH, DELETE on jobs) are rate limited to 60 requests per 1
 ```bash
 npm run typecheck         # tsc in every workspace
 npm run lint              # ESLint
-npm test                  # unit tests in every workspace (no database needed)
+npm test                  # unit and web component tests (no database needed)
 npm run test:integration  # API tests against a jobs_test database (needs the db container)
+npm run test:e2e          # Playwright flows in Chromium (needs the db container, see below)
+npm run coverage          # v8 coverage for the API (unit + integration) and web app
 npm run build             # production build of the web app into apps/web/dist/
 npm run preview           # serve the production build
 npm run db:generate       # regenerate the Prisma client
@@ -122,6 +124,13 @@ npm run ingest            # import postings from the job boards once
 npm run format            # Prettier (write)
 npm run format:check      # Prettier (check only)
 ```
+
+## Tests
+
+- **Unit tests** (Vitest) for pure logic in every workspace.
+- **Web component tests** (Vitest, React Testing Library, jsdom) render pages with the real providers and router. MSW answers their API calls at the network layer, and any request without a handler fails the test.
+- **API integration tests** (Supertest) run real HTTP requests against PostgreSQL. They use `TEST_DATABASE_URL`, or DATABASE_URL's database plus `_test`, which is created and migrated automatically and emptied before every test.
+- **End-to-end tests** (Playwright) cover three flows: an employer registers, posts a job and finds it in search; a job seeker searches with filters and opens a job; a job seeker saves a job and drags it to Applied on the tracker. Run `npx playwright install chromium` once. `npm run test:e2e` starts its own API on port 4100 and web server on port 3100 against `<database>_e2e`, which is reset and seeded with three jobs on every run, so your dev servers and data are untouched.
 
 ## Roadmap
 
