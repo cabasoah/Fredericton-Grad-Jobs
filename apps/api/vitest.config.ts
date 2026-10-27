@@ -2,6 +2,14 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // `npm run coverage` runs both projects, so routes are measured through
+    // the integration tests (needs the db container).
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.ts"],
+      exclude: ["src/generated/**", "src/**/*.test.ts", "src/test/**"],
+      reporter: ["text", "text-summary", "html"],
+    },
     projects: [
       {
         extends: true,
