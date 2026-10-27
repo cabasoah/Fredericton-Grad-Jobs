@@ -44,6 +44,7 @@
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:seed": "prisma db seed",
     "test:integration": "vitest run --project integration",
-    "ingest": "tsx src/ingest/cli.ts"
+    "ingest": "tsx src/ingest/cli.ts",
+    "e2e:db": "tsx src/test/e2eDb.ts"
   }
 }
