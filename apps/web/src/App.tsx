@@ -29,6 +29,10 @@ const loadTrackerPage = async () => {
   const { default: TrackerPage } = await import("./pages/TrackerPage");
   return { element: <RequireRole role="SEEKER"><TrackerPage/></RequireRole> };
 };
+const loadDashboardPage = async () => {
+  const { default: DashboardPage } = await import("./pages/DashboardPage");
+  return { element: <RequireRole role="SEEKER"><DashboardPage/></RequireRole> };
+};
 
 // Create Router. Every route has its own errorElement, so an error in one
 // page renders inside the layout (navbar still works); the root one catches
@@ -43,8 +47,9 @@ const router = createBrowserRouter(
       <Route path="/edit-job/:id" element={<RequireRole role="EMPLOYER"><EditJobPage/></RequireRole>} loader = {jobLoader} errorElement={<ErrorPage/>}/>
       <Route path="/login" element={<LoginPage/> } errorElement={<ErrorPage/>}/>
       <Route path="/register" element={<RegisterPage/> } errorElement={<ErrorPage/>}/>
-      {/* Loaded on demand: dnd-kit stays out of the main bundle. */}
+      {/* Loaded on demand: dnd-kit and Recharts stay out of the main bundle. */}
       <Route path="/tracker" lazy={loadTrackerPage} errorElement={<ErrorPage/>}/>
+      <Route path="/dashboard" lazy={loadDashboardPage} errorElement={<ErrorPage/>}/>
       <Route path="*" element={<NotFoundPage/> }/>
     </Route>
   )

@@ -51,6 +51,7 @@ const Navbar = () => {
       {user?.role === 'SEEKER' && (
         <>
           <NavLink to="/tracker" className={linkClass}>Tracker</NavLink>
+          <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
         </>
       )}
       {status === 'ready' && (user ? (
