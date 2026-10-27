@@ -18,12 +18,18 @@ export default async function setup(project: TestProject) {
     throw new Error("DATABASE_URL is not set (see apps/api/.env.example)");
   }
 
-  const url = new URL(baseUrl);
-  const databaseName = `${url.pathname.slice(1)}_test`;
+  // TEST_DATABASE_URL picks the test database explicitly; otherwise it is
+  // DATABASE_URL's database with a _test suffix.
+  const url = new URL(process.env.TEST_DATABASE_URL ?? baseUrl);
+  if (!process.env.TEST_DATABASE_URL) url.pathname = `${url.pathname}_test`;
+  const databaseName = url.pathname.slice(1);
   if (!/^[a-z0-9_]+$/i.test(databaseName)) {
     throw new Error(`Unexpected database name: ${databaseName}`);
   }
-  url.pathname = `/${databaseName}`;
+  // Every test truncates the tables, so never point it at the dev database.
+  if (databaseName === new URL(baseUrl).pathname.slice(1)) {
+    throw new Error("TEST_DATABASE_URL must name a different database than DATABASE_URL");
+  }
   const testUrl = url.toString();
 
   const admin = createPrismaClient(baseUrl);
