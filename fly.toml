@@ -1,0 +1,48 @@
+# Fly.io config for the API (with the 6-hourly job import running inside it).
+# Deployed by the deploy-api job in .github/workflows/ci.yml after CI passes
+# on main, or by hand with `fly deploy` from the repo root.
+#
+# Secrets are set on Fly, never here:
+#   fly secrets set DATABASE_URL=... JWT_SECRET=... CORS_ORIGIN=...
+#
+# The app name must be unique on Fly. If it is taken, change it here and in
+# apps/web/vercel.json (the /api rewrite destination).
+app = "fredericton-grad-jobs-api"
+# Ashburn, Virginia: next to Neon's AWS us-east-1 region, so every query
+# stays in the same area.
+primary_region = "iad"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "4000"
+  LOG_LEVEL = "info"
+  # Runs the Greenhouse/Lever import every 6 hours inside the API process.
+  INGEST_CRON = "true"
+  # Vercel's rewrite + Fly's proxy. Verify after the first deploy (README,
+  # "Deploying"): too low makes all users share one rate limit, too high
+  # lets clients pick their own IP.
+  TRUST_PROXY = "2"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  # Always on: the import schedule only runs while the machine is running.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/v1/health"
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "30s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 54 MiB was measured at idle; the import run was not measured, so this
+  # leaves headroom. 256mb is about $1.50/month cheaper if it proves enough.
+  memory = "512mb"

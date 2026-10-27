@@ -4,10 +4,11 @@ on:
   push:
   pull_request:
 
-# A new push to the same branch or pull request cancels the older run.
+# A new push to the same branch or pull request cancels the older run,
+# except on main, where a deploy may be in progress.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -85,3 +86,24 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down --volumes
+
+  # The web app deploys through Vercel's GitHub integration; the API deploys
+  # here, only after every check passed on main. Turned on by setting the
+  # repository variable DEPLOY_API to "true" once Fly is set up (README,
+  # "Deploying"), so main stays green before then.
+  deploy-api:
+    name: Deploy API to Fly.io
+    needs: [checks, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_API == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-api
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
