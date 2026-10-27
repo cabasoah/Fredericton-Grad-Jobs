@@ -1,6 +1,6 @@
 # Fredericton Grad Jobs
 
-[![CI](https://github.com/cabasoah/React-Job-Application/actions/workflows/ci.yml/badge.svg)](https://github.com/cabasoah/React-Job-Application/actions/workflows/ci.yml)
+[![CI](https://github.com/cabasoah/Fredericton-Grad-Jobs/actions/workflows/ci.yml/badge.svg)](https://github.com/cabasoah/Fredericton-Grad-Jobs/actions/workflows/ci.yml)
 
 A job board built with React, TypeScript and Vite on the front end and an Express + Prisma + PostgreSQL API on the back end. It started as a tutorial project and is being upgraded in phases.
 
