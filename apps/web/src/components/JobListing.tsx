@@ -5,6 +5,7 @@ import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS, type Job } from "@fredericton-grad
 import { truncateDescription } from "@/lib/truncateDescription";
 import { formatSalary } from "@/lib/formatSalary";
 import { descriptionText } from "@/lib/description";
+import SaveJobButton from "./SaveJobButton";
 
 type JobListingProps = {
     job: Job;
@@ -46,12 +47,15 @@ const JobListing = ({job}: JobListingProps) => {
                             <FaMapMarker className="inline mr-2 text-sm mb-1"/>
                                 {job.location}
                         </div>
+                        <div className="flex gap-2">
+                        <SaveJobButton jobId={job.id} jobTitle={job.title} className="h-[36px]" />
                         <Link
-                            to={`/jobs/${job.id}`} 
+                            to={`/jobs/${job.id}`}
                             className="h-[36px] bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-center text-sm"
                         >
                         Read More
                         </Link>
+                        </div>
                         </div>
                     </div>
                 </div>

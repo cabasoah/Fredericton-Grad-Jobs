@@ -8,6 +8,7 @@ import { formatRelativeTime } from '@/lib/formatRelativeTime';
 import { formatSalaryRange } from '@/lib/formatSalary';
 import { canManageJob } from '@/lib/permissions';
 import { useDeleteJob, useJob } from '@/lib/queries/jobs';
+import SaveJobButton from '@/components/SaveJobButton';
 
 const JobPage = () => {
     const { id = '' } = useParams();
@@ -70,17 +71,20 @@ const JobPage = () => {
                         ))}
                     </ul>
                 )}
+                <div className="flex flex-wrap items-center gap-3 mt-6 justify-center md:justify-start">
                 {jobData.externalUrl && (
                     <a
                         href={jobData.externalUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-full"
+                        className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-full"
                     >
                         Apply <FaExternalLinkAlt aria-hidden className="text-sm" />
                         <span className="sr-only">(opens in a new tab)</span>
                     </a>
                 )}
+                <SaveJobButton jobId={jobData.id} jobTitle={jobData.title} className="rounded-full" />
+                </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-md mt-6">

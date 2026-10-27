@@ -1,4 +1,10 @@
 import {
+  ApplicationCreateSchema,
+  ApplicationListResponseSchema,
+  ApplicationSchema,
+  ApplicationStatsSchema,
+  ApplicationUpdateSchema,
+  ApplicationWithEventsSchema,
   AuthResponseSchema,
   ErrorResponseSchema,
   JobCreateSchema,
@@ -8,6 +14,8 @@ import {
   LoginSchema,
   RegisterSchema,
   StatsSchema,
+  type ApplicationCreateInput,
+  type ApplicationUpdate,
   type JobCreateInput,
   type JobSort,
   type JobType,
@@ -104,6 +112,27 @@ export const api = {
   },
 
   getStats: async () => StatsSchema.parse(await apiFetch("/stats")),
+
+  listApplications: async () =>
+    ApplicationListResponseSchema.parse(await apiFetch("/applications")).data,
+  getApplication: async (id: string) =>
+    ApplicationWithEventsSchema.parse(await apiFetch(`/applications/${encodeURIComponent(id)}`)),
+  createApplication: async (input: ApplicationCreateInput) =>
+    ApplicationSchema.parse(
+      await apiFetch("/applications", jsonRequest("POST", ApplicationCreateSchema.parse(input))),
+    ),
+  updateApplication: async (id: string, input: ApplicationUpdate) =>
+    ApplicationWithEventsSchema.parse(
+      await apiFetch(
+        `/applications/${encodeURIComponent(id)}`,
+        jsonRequest("PATCH", ApplicationUpdateSchema.parse(input)),
+      ),
+    ),
+  deleteApplication: async (id: string) => {
+    await apiFetch(`/applications/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+  getApplicationStats: async () =>
+    ApplicationStatsSchema.parse(await apiFetch("/applications/stats")),
 
   me: async () => AuthResponseSchema.parse(await apiFetch("/auth/me")).user,
   login: async (input: LoginInput) =>
