@@ -53,6 +53,11 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // Tests and their helpers are never hot-reloaded.
+    files: ['apps/web/src/test/**', 'apps/web/src/**/*.test.{ts,tsx}'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
   // Must stay last: turns off rules that conflict with Prettier formatting.
   prettier,
 ])

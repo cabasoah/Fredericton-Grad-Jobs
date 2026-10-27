@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+// vitest/config's defineConfig is Vite's, plus the `test` block.
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -20,5 +21,10 @@ export default defineConfig({
     // origin through CORS (CORS_ORIGIN in apps/api/.env).
     strictPort: true,
     open: true,
+  },
+  test: {
+    // Component tests render into jsdom; MSW answers their API calls.
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
   },
 })
