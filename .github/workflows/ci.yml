@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# A new push to the same branch or pull request cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, typecheck, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: jobs
+          POSTGRES_PASSWORD: jobs
+          POSTGRES_DB: jobs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jobs -d jobs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      # Also generates the Prisma client (apps/api postinstall).
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Unit and component tests
+        run: npm test
+      - name: API integration tests (Postgres service)
+        run: npm run test:integration
+        env:
+          # The test setup creates and migrates jobs_test next to this database.
+          DATABASE_URL: postgresql://jobs:jobs@localhost:5432/jobs?schema=public
+      - run: npm run build
+
+  e2e:
+    name: Playwright against docker compose
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Start db, api and web
+        run: docker compose up --build --detach --wait
+      - run: npm ci
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+      - name: Container logs
+        if: failure()
+        run: docker compose logs
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
