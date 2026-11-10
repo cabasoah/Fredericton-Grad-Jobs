@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { pino } from "pino";
 import { createApp } from "./app";
 import { createPrismaClient } from "./db";
@@ -8,12 +10,21 @@ const env = loadEnv();
 const logger = pino({ level: env.LOG_LEVEL });
 const db = createPrismaClient(env.DATABASE_URL);
 
+const webDistDir = env.WEB_DIST_DIR ? path.resolve(env.WEB_DIST_DIR) : undefined;
+if (webDistDir && !existsSync(path.join(webDistDir, "index.html"))) {
+  throw new Error(`WEB_DIST_DIR has no index.html: ${webDistDir} (run npm run build first)`);
+}
+if (webDistDir) {
+  logger.info(`Serving the web app from ${webDistDir}`);
+}
+
 const app = createApp({
   db,
   logger,
   corsOrigins: env.CORS_ORIGIN,
   session: { secret: env.JWT_SECRET, secureCookies: secureCookies(env) },
   trustProxyHops: env.TRUST_PROXY,
+  webDistDir,
   exposeErrorStack: env.NODE_ENV === "development",
 });
 
