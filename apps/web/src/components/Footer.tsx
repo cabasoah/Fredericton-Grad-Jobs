@@ -7,7 +7,7 @@ const Footer = () => (
       <div className="max-w-sm">
         <p className="font-semibold text-slate-900">Fredericton Grad Jobs</p>
         <p className="mt-1 text-sm text-slate-500">
-          Graduate jobs, internships and co-op roles in Fredericton and Atlantic Canada, with a tracker for every
+          Graduate jobs, entry-level and junior roles in Fredericton and Atlantic Canada, with a tracker for every
           application.
         </p>
       </div>
