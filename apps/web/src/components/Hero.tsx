@@ -39,7 +39,7 @@ const Hero = ({ stats }: { stats?: Stats }) => {
           Start your career close to home
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-          Graduate jobs, internships and co-op roles in Fredericton and Atlantic Canada, plus a tracker for every
+          Graduate jobs, entry-level and junior roles in Fredericton and Atlantic Canada, plus a tracker for every
           application you send.
         </p>
 
