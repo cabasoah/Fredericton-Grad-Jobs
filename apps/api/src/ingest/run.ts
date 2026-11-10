@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import type { Db } from "../db";
 import { DEFAULT_HTTP_OPTIONS, sleep, type HttpOptions } from "./http";
 import type { IngestTarget } from "./companies";
+import { isInRegion } from "./region";
 import { greenhouse } from "./sources/greenhouse";
 import { lever } from "./sources/lever";
 import type { IngestSourceName, NormalizedJob, Source } from "./types";
@@ -17,6 +18,9 @@ export type IngestOptions = {
   http?: HttpOptions;
   // Pause between companies, to be polite to the job boards.
   delayBetweenCompaniesMs?: number;
+  // Which postings to keep. Defaults to Atlantic Canada plus remote roles
+  // open to Canada (region.ts); the rest are skipped, and closed if stored.
+  keep?: (job: NormalizedJob) => boolean;
 };
 
 export type IngestRunSummary = {
@@ -28,6 +32,8 @@ export type IngestRunSummary = {
   created: number;
   updated: number;
   closed: number;
+  // Postings outside the region (not stored in IngestRun, only reported).
+  skipped: number;
   errors: number;
   errorDetail: string | null;
 };
@@ -56,7 +62,7 @@ const companyIdFor = async (db: Db, name: string) => {
 };
 
 const ingestCompany = async (
-  { db, logger }: IngestOptions,
+  { db, logger, keep = isInRegion }: IngestOptions,
   source: Source,
   target: IngestTarget,
   http: HttpOptions,
@@ -64,6 +70,7 @@ const ingestCompany = async (
 ): Promise<IngestRunSummary> => {
   const run = await db.ingestRun.create({ data: { batchId, source: source.name, company: target.company } });
   const counts = { fetched: 0, created: 0, updated: 0, closed: 0, errors: 0 };
+  let skipped = 0;
   const errorDetails: string[] = [];
   const recordError = (detail: string) => {
     counts.errors++;
@@ -74,17 +81,23 @@ const ingestCompany = async (
     const rawPostings = await source.fetchJobs(target.company, http);
     counts.fetched = rawPostings.length;
 
-    // Ids of every posting the source still lists, including ones we fail
-    // to map, so they are not closed by mistake.
+    // Ids of every posting the source still lists and we keep, including
+    // ones we fail to map, so they are not closed by mistake. Postings
+    // outside the region are left out, so stored ones get closed below.
     const liveIds = new Set<string>();
     const postings = new Map<string, NormalizedJob>();
     for (const raw of rawPostings) {
       const id = source.rawId(raw);
-      if (id) liveIds.add(id);
       try {
         const job = source.normalize(raw);
+        if (!keep(job)) {
+          skipped++;
+          continue;
+        }
+        liveIds.add(job.externalId);
         postings.set(job.externalId, job);
       } catch (err) {
+        if (id) liveIds.add(id);
         recordError(`Could not map posting ${id ?? "(no id)"}: ${message(err)}`);
       }
     }
@@ -125,7 +138,8 @@ const ingestCompany = async (
       }
     }
 
-    // Postings that disappeared from the source: CLOSED, never deleted.
+    // Postings that disappeared from the source or are outside the region:
+    // CLOSED, never deleted.
     const { count } = await db.job.updateMany({
       where: { source: source.name, companyId, status: "OPEN", externalId: { notIn: [...liveIds] } },
       data: { status: "CLOSED" },
@@ -146,8 +160,8 @@ const ingestCompany = async (
     logger.warn({ batchId, company: target.company, errorDetails }, "ingest errors");
   }
   logger.info(
-    { batchId, source: source.name, company: target.company, ...counts },
-    `ingest ${source.name.toLowerCase()}/${target.company}: fetched=${counts.fetched} created=${counts.created} updated=${counts.updated} closed=${counts.closed} errors=${counts.errors}${errorDetail ? ` (${errorDetail})` : ""}`,
+    { batchId, source: source.name, company: target.company, ...counts, skipped },
+    `ingest ${source.name.toLowerCase()}/${target.company}: fetched=${counts.fetched} skipped=${skipped} created=${counts.created} updated=${counts.updated} closed=${counts.closed} errors=${counts.errors}${errorDetail ? ` (${errorDetail})` : ""}`,
   );
   return {
     source: source.name,
@@ -155,6 +169,7 @@ const ingestCompany = async (
     startedAt: finished.startedAt,
     finishedAt: finished.finishedAt,
     ...counts,
+    skipped,
     errorDetail,
   };
 };
@@ -177,11 +192,11 @@ export const runIngest = async (options: IngestOptions) => {
     rows.push(await ingestCompany(options, sources[target.source], target, http, batchId));
   }
 
-  const total = (key: "fetched" | "created" | "updated" | "closed" | "errors") =>
+  const total = (key: "fetched" | "skipped" | "created" | "updated" | "closed" | "errors") =>
     rows.reduce((sum, row) => sum + row[key], 0);
   logger.info(
     { batchId, companies: rows.length },
-    `ingest finished: companies=${rows.length} fetched=${total("fetched")} created=${total("created")} updated=${total("updated")} closed=${total("closed")} errors=${total("errors")}`,
+    `ingest finished: companies=${rows.length} fetched=${total("fetched")} skipped=${total("skipped")} created=${total("created")} updated=${total("updated")} closed=${total("closed")} errors=${total("errors")}`,
   );
   return { batchId, rows };
 };

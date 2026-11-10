@@ -10,7 +10,8 @@ import type { IngestTarget } from "./companies";
 import { runIngest } from "./run";
 import { greenhouse } from "./sources/greenhouse";
 import { lever } from "./sources/lever";
-import type { Source } from "./types";
+import { isInRegion } from "./region";
+import type { NormalizedJob, Source } from "./types";
 
 const db = createPrismaClient(inject("databaseUrl"));
 const logger = pino({ level: "silent" });
@@ -40,12 +41,19 @@ const targets: IngestTarget[] = [
   { source: "LEVER", company: "fixture-lever", name: "Fixture Lever Co" },
 ];
 
-const ingest = (ghPostings: unknown[] = greenhouseJobs, lvPostings: unknown[] = leverPostings) =>
+// The fixtures are outside Atlantic Canada, so these tests keep every
+// posting; the region filter has its own test below.
+const ingest = (
+  ghPostings: unknown[] = greenhouseJobs,
+  lvPostings: unknown[] = leverPostings,
+  keep: (job: NormalizedJob) => boolean = () => true,
+) =>
   runIngest({
     db,
     logger,
     targets,
     delayBetweenCompaniesMs: 0,
+    keep,
     sources: {
       GREENHOUSE: withPostings(greenhouse, () => ghPostings),
       LEVER: withPostings(lever, () => lvPostings),
@@ -131,6 +139,28 @@ describe("runIngest", () => {
     expect(run.rows[0]).toMatchObject({ fetched: 4, created: 0, updated: 0, closed: 0, errors: 1 });
     expect(run.rows[0]?.errorDetail).toMatch(/^Could not map posting 8221711/);
     expect(await db.job.findFirst({ where: { externalId: "8221711" } })).toMatchObject({ status: "OPEN" });
+  });
+
+  it("keeps only postings in the region and closes stored ones outside it", async () => {
+    await ingest();
+    expect(await db.job.count({ where: { status: "OPEN" } })).toBe(7);
+
+    // Move one posting to Fredericton; every other fixture is outside the region.
+    const local = greenhouseJobs.map((job, index) =>
+      index === 0 ? { ...(job as Record<string, unknown>), location: { name: "Fredericton, NB" } } : job,
+    );
+    const run = await ingest(local, leverPostings, isInRegion);
+    expect(counts(run.rows)).toEqual([
+      { source: "GREENHOUSE", fetched: 4, created: 0, updated: 1, closed: 3, errors: 0 },
+      { source: "LEVER", fetched: 3, created: 0, updated: 0, closed: 3, errors: 0 },
+    ]);
+    expect(run.rows.map((row) => row.skipped)).toEqual([3, 3]);
+
+    const open = await db.job.findMany({ where: { status: "OPEN" } });
+    expect(open).toHaveLength(1);
+    expect(open[0]).toMatchObject({ externalId: "8221711", location: "Fredericton, NB" });
+    // Closed, not deleted.
+    expect(await db.job.count()).toBe(7);
   });
 });
 

@@ -11,7 +11,9 @@ const logger = pino({ level: env.LOG_LEVEL });
 const db = createPrismaClient(env.DATABASE_URL);
 
 const main = async () => {
-  const { batchId } = await runIngest({ db, logger, targets: INGEST_TARGETS });
+  const { batchId, rows: summaries } = await runIngest({ db, logger, targets: INGEST_TARGETS });
+  // Postings outside the region are counted per run but not stored.
+  const skippedBy = new Map(summaries.map((row) => [`${row.source}/${row.company}`, row.skipped]));
   const rows = await db.ingestRun.findMany({
     where: { batchId },
     orderBy: { startedAt: "asc" },
@@ -32,6 +34,7 @@ const main = async () => {
   console.table(
     rows.map((row) => ({
       ...row,
+      skipped: skippedBy.get(`${row.source}/${row.company}`) ?? 0,
       startedAt: row.startedAt.toISOString(),
       finishedAt: row.finishedAt?.toISOString() ?? null,
     })),
