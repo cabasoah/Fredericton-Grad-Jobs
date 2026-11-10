@@ -34,6 +34,9 @@ const EnvSchema = z.object({
   // production; set "false" only for production builds served over plain
   // HTTP on localhost (the docker compose stack).
   COOKIE_SECURE: z.enum(["true", "false"]).optional(),
+  // Built web app (apps/web/dist) for the API to serve on the same origin,
+  // relative to the working directory (apps/api). Unset = API only.
+  WEB_DIST_DIR: z.string().min(1).optional(),
 }).refine((env) => !(env.NODE_ENV === "production" && env.JWT_SECRET === EXAMPLE_JWT_SECRET), {
   path: ["JWT_SECRET"],
   message: "Replace the example JWT_SECRET from .env.example before running in production",

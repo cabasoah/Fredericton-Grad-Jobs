@@ -31,6 +31,10 @@ dist-ssr
 # Generated Prisma client (run `npm run db:generate`)
 apps/api/src/generated
 
+#docs
+docs/Change-guide
+docs/Project-Change-Guide.docx
+
 # Test output (coverage reports, Playwright results)
 coverage
 test-results
