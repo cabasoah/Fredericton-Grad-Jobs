@@ -39,3 +39,6 @@ docs/Project-Change-Guide.docx
 coverage
 test-results
 playwright-report
+
+# Stitch design exports (reference only; one screenshot is in docs/images)
+designs/
