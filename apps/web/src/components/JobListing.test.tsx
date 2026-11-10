@@ -1,5 +1,4 @@
 import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { Job } from "@fredericton-grad-jobs/shared";
 import JobListing from "@/components/JobListing";
@@ -12,24 +11,19 @@ const renderCard = (job: Job) => renderRoutes([{ path: "/", element: <JobListing
 const text = (length: number) => "abcdefghijklmnopqrstuvwxyz".repeat(30).slice(0, length);
 
 describe("JobListing description", () => {
-  it("shows a short description in full, with no More button", async () => {
+  it("shows a short description in full", async () => {
     renderCard(makeJob({ description: text(90) }));
     expect(await screen.findByText(text(90))).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "More" })).not.toBeInTheDocument();
   });
 
-  it("cuts a long description at 90 characters and toggles a longer preview", async () => {
-    const user = userEvent.setup();
+  it("cuts a long description at 90 characters; the job page has the rest", async () => {
     renderCard(makeJob({ description: text(600) }));
-
     expect(await screen.findByText(`${text(90)}...`)).toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("button", { name: "More" }));
-    // Expanded cards stop at 500; the job page has the rest.
-    expect(screen.getByText(`${text(500)}...`)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Less" }));
-    expect(screen.getByText(`${text(90)}...`)).toBeInTheDocument();
+  it("links the title to the job page", async () => {
+    renderCard(makeJob({ id: "job-42", title: "Data Analyst" }));
+    expect(await screen.findByRole("link", { name: "Data Analyst" })).toHaveAttribute("href", "/jobs/job-42");
   });
 
   it("previews imported HTML as plain text with blocks kept apart and scripts dropped", async () => {

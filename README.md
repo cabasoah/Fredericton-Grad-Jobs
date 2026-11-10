@@ -75,7 +75,7 @@ The web app and API share Zod schemas from `packages/shared`, so both validate d
 | Tests               | 147 unit and component (api 70, web 63, shared 14), 55 API integration, 3 Playwright flows; all passing       | `npm test`, `npm run test:integration`, `npm run test:e2e`, 27 Oct 2026                                  |
 | Line coverage       | API 90.29% (unit + integration), web 62.15%; v8, every source file included                                   | `npm run coverage`, 27 Oct 2026                                                                          |
 | Lighthouse (mobile) | `/`: performance 73, accessibility 98, best practices 96, SEO 83. `/jobs`: 67, 98, 96, 83                     | Lighthouse 13.5.0, default mobile settings, median of 3 runs against the local Docker stack, 27 Oct 2026 |
-| JS bundle           | Main 542.41 kB (gzip 171.39 kB); tracker 57.95 kB and dashboard 371.69 kB load only when opened               | `vite build`, 27 Oct 2026                                                                                |
+| JS bundle           | Main 572.55 kB (gzip 177.83 kB); tracker 61.45 kB and dashboard 374.13 kB load only when opened               | `vite build`, 9 Nov 2026                                                                                 |
 
 ## Run locally
 

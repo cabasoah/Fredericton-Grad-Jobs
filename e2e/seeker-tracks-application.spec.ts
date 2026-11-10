@@ -8,11 +8,14 @@ test("a job seeker saves a job and drags it to Applied on the tracker", async ({
   await page.goto("/jobs");
 
   await page.getByLabel("Search jobs").fill(title);
-  await expect(page.getByRole("link", { name: "Read More" })).toHaveCount(1);
+  // Wait for the debounced search to reach the URL; a late URL update would
+  // cancel the navigation to the tracker below.
+  await expect(page).toHaveURL(/q=Frontend/);
+  await expect(page.getByRole("link", { name: title, exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: `Save ${title} to your tracker` }).click();
   await expect(page.getByRole("link", { name: `Saved ${title} (open your tracker)` })).toBeVisible();
 
-  await page.getByRole("navigation").getByRole("link", { name: "Tracker" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Tracker" }).click();
   const saved = page.getByRole("region", { name: /^Saved/ });
   const applied = page.getByRole("region", { name: /^Applied/ });
   await expect(saved.getByText(title)).toBeVisible();

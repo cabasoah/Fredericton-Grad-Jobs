@@ -1,75 +1,72 @@
 import type { ReactNode } from 'react';
 import type { JobFilters } from '@/lib/api';
 import { useJobs } from '@/lib/queries/jobs';
+import { buttonPrimary, buttonSecondary } from '@/lib/styles';
 import JobCardSkeleton from './JobCardSkeleton';
 import JobListing from './JobListing';
 
 type JobListingsProps = {
-  heading: string;
   filters?: JobFilters;
   pageSize: number;
+  // Cards per row on wide screens.
+  columns?: 1 | 2 | 3;
   // Show a "Load more" button while the API reports more pages.
   showLoadMore?: boolean;
   // Shown when the request succeeds with no jobs.
   emptyState: ReactNode;
 };
 
+const GRID = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 md:grid-cols-2',
+  3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+};
+
 const skeletons = (count: number) =>
   Array.from({ length: count }, (_, index) => <JobCardSkeleton key={`skeleton-${index}`} />);
 
-const JobListings = ({ heading, filters = {}, pageSize, showLoadMore = false, emptyState }: JobListingsProps) => {
+const JobListings = ({ filters = {}, pageSize, columns = 2, showLoadMore = false, emptyState }: JobListingsProps) => {
   const { data, status, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useJobs(filters, pageSize);
   const jobs = data?.pages.flatMap((page) => page.data) ?? [];
+  const grid = `grid gap-4 ${GRID[columns]}`;
+
+  if (status === 'pending') {
+    return (
+      <div className={grid} role="status" aria-label="Loading jobs">
+        {skeletons(Math.min(pageSize, 6))}
+      </div>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center" role="alert">
+        <p className="mb-4 text-sm text-rose-700">Could not load jobs. Please try again.</p>
+        <button onClick={() => void refetch()} disabled={isRefetching} className={buttonPrimary}>
+          {isRefetching ? 'Retrying...' : 'Retry'}
+        </button>
+      </div>
+    );
+  }
+  if (jobs.length === 0) return emptyState;
 
   return (
-      <section className="bg-blue-50 px-4 py-10">
-        <div className="container-xl lg:container m-auto">
-          <h2 className="text-3xl font-bold text-indigo-500 mb-6 text-center">
-            {heading}
-          </h2>
-            { status === 'pending' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="status" aria-label="Loading jobs">
-                {skeletons(Math.min(pageSize, 6))}
-              </div>
-            ) : status === 'error' ? (
-              <div className="text-center" role="alert">
-                <p className="text-red-600 mb-4">Could not load jobs. Please try again.</p>
-                <button
-                  onClick={() => void refetch()}
-                  disabled={isRefetching}
-                  className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {isRefetching ? 'Retrying...' : 'Retry'}
-                </button>
-              </div>
-            ) : jobs.length === 0 ? (
-              emptyState
-            ) : (
-              <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {jobs.map((job) => (
-                  <JobListing key={job.id} job={job} />
-                ))}
-                {isFetchingNextPage && skeletons(3)}
-              </div>
-              {showLoadMore && hasNextPage && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={() => void fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                    className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                  >
-                    {isFetchingNextPage ? 'Loading...' : 'Load more'}
-                  </button>
-                </div>
-              )}
-              </>
-            )}
-
+    <>
+      <div className={grid}>
+        {jobs.map((job) => (
+          <JobListing key={job.id} job={job} />
+        ))}
+        {isFetchingNextPage && skeletons(2)}
+      </div>
+      {showLoadMore && hasNextPage && (
+        <div className="mt-8 text-center">
+          <button onClick={() => void fetchNextPage()} disabled={isFetchingNextPage} className={`${buttonSecondary} px-6`}>
+            {isFetchingNextPage ? 'Loading...' : 'Load more jobs'}
+          </button>
         </div>
-      </section>
-  )
+      )}
+    </>
+  );
 }
 
 export default JobListings

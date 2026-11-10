@@ -23,9 +23,9 @@ const AddJobPage = () => {
 
   return (
     <JobForm
-      heading="Add Job"
-      submitLabel="Add Job"
-      submittingLabel="Adding Job..."
+      heading="Post a job"
+      submitLabel="Publish job"
+      submittingLabel="Publishing..."
       companyName={user.company.name}
       onSubmit={addJob}
     />

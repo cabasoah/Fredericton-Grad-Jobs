@@ -23,13 +23,13 @@ describe("RequireRole", () => {
     const user = userEvent.setup();
     renderProtected("/add-job?draft=1");
 
-    expect(await screen.findByRole("button", { name: "Sign In" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Log in" })).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent("/login?returnTo=%2Fadd-job%3Fdraft%3D1");
     expect(screen.queryByRole("heading", { name: "Post a job" })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Email"), employer.email);
     await user.type(screen.getByLabelText("Password"), "a long enough password");
-    await user.click(screen.getByRole("button", { name: "Sign In" }));
+    await user.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(await screen.findByRole("heading", { name: "Post a job" })).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent("/add-job?draft=1");

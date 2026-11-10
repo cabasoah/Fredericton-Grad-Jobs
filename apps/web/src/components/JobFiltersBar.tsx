@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { FaSearch } from "react-icons/fa";
+import { LuMapPin, LuSearch, LuSlidersHorizontal } from "react-icons/lu";
 import {
   JOB_SORTS,
   JOB_TYPE_LABELS,
@@ -11,6 +11,7 @@ import {
 import { filtersFromSearchParams, TEXT_FILTER_KEYS, type TextFilterKey } from "@/lib/jobFilters";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useSearchParamsUpdater } from "@/lib/useSearchParamsUpdater";
+import { card, inputClass, labelClass, selectClass } from "@/lib/styles";
 
 export const SEARCH_DEBOUNCE_MS = 300;
 
@@ -32,14 +33,12 @@ const draftsFromUrl = (params: URLSearchParams): TextDrafts => ({
 const sameDrafts = (a: TextDrafts, b: TextDrafts) =>
   TEXT_FILTER_KEYS.every((key) => a[key].trim() === b[key].trim());
 
-const inputClass = "border rounded w-full py-2 px-3 bg-white";
-const labelClass = "block text-gray-700 text-sm font-bold mb-1";
-
-// Search and filter controls for the jobs page. All values live in the URL
+// Search and filter controls for the jobs page (the sort order is
+// SortSelect, shown above the results). All values live in the URL
 // (?q=...&type=...), so a filtered view can be shared, bookmarked and
 // survives a refresh. Text inputs update the URL 300 ms after typing stops;
 // selects update it immediately.
-const JobFiltersBar = () => {
+const JobFiltersBar = ({ onReset }: { onReset?: () => void }) => {
   const [searchParams] = useSearchParams();
   const updateSearchParams = useSearchParamsUpdater();
   const [drafts, setDrafts] = useState<TextDrafts>(() => draftsFromUrl(searchParams));
@@ -76,70 +75,125 @@ const JobFiltersBar = () => {
   const setDraft = (key: TextFilterKey, value: string) =>
     setDrafts((current) => ({ ...current, [key]: value }));
 
-  const setSelect = (key: "type" | "remote" | "sort", value: string) =>
+  const setSelect = (key: "type" | "remote", value: string) =>
     updateSearchParams((next) => {
       if (value) next.set(key, value);
       else next.delete(key);
     });
 
+  const iconInput = `${inputClass} pl-9`;
+
   return (
     <form
       role="search"
-      className="container-xl lg:container m-auto px-4 pt-8"
+      aria-label="Filter jobs"
+      className={`${card} p-5`}
       onSubmit={(e) => e.preventDefault()}
     >
-      <div className="relative mb-4">
-        <label htmlFor="job-search" className="sr-only">Search jobs</label>
-        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden />
-        <input
-          id="job-search"
-          type="search"
-          className={`${inputClass} pl-10`}
-          placeholder="Search titles, descriptions and companies"
-          value={drafts.q}
-          onChange={(e) => setDraft("q", e.target.value)}
-        />
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <LuSlidersHorizontal aria-hidden className="text-slate-500" /> Refine search
+        </h2>
+        {onReset && (
+          <button type="button" onClick={onReset} className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+            Reset all
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+      <div className="space-y-5">
+        <div>
+          <label htmlFor="job-search" className={labelClass}>Search jobs</label>
+          <div className="relative">
+            <LuSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+            <input
+              id="job-search"
+              type="search"
+              className={iconInput}
+              placeholder="Title, description or company"
+              value={drafts.q}
+              onChange={(e) => setDraft("q", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="filter-location" className={labelClass}>Location</label>
+          <div className="relative">
+            <LuMapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+            <input id="filter-location" type="text" className={iconInput} placeholder="eg. Fredericton"
+              value={drafts.location} onChange={(e) => setDraft("location", e.target.value)} />
+          </div>
+        </div>
+
         <div>
           <label htmlFor="filter-type" className={labelClass}>Job type</label>
-          <select id="filter-type" className={inputClass} value={filters.type ?? ""} onChange={(e) => setSelect("type", e.target.value)}>
+          <select id="filter-type" className={selectClass} value={filters.type ?? ""} onChange={(e) => setSelect("type", e.target.value)}>
             <option value="">Any</option>
             {JOB_TYPES.map((type) => <option key={type} value={type}>{JOB_TYPE_LABELS[type]}</option>)}
           </select>
         </div>
-        <div>
-          <label htmlFor="filter-remote" className={labelClass}>Work arrangement</label>
-          <select id="filter-remote" className={inputClass} value={filters.remote ?? ""} onChange={(e) => setSelect("remote", e.target.value)}>
-            <option value="">Any</option>
-            {REMOTE_TYPES.map((remote) => <option key={remote} value={remote}>{REMOTE_TYPE_LABELS[remote]}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="filter-location" className={labelClass}>Location</label>
-          <input id="filter-location" type="text" className={inputClass} placeholder="eg. Fredericton"
-            value={drafts.location} onChange={(e) => setDraft("location", e.target.value)} />
-        </div>
+
+        <fieldset>
+          <legend className={labelClass}>Work arrangement</legend>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(["", ...REMOTE_TYPES] as const).map((remote) => (
+              <label key={remote || "ANY"} className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name="remote"
+                  value={remote}
+                  checked={(filters.remote ?? "") === remote}
+                  onChange={() => setSelect("remote", remote)}
+                  className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+                <span className="flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 transition-colors hover:bg-slate-100 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-1">
+                  {remote ? REMOTE_TYPE_LABELS[remote] : "Any"}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <div>
           <label htmlFor="filter-salary" className={labelClass}>Minimum salary</label>
           <input id="filter-salary" type="number" min={0} step={1} inputMode="numeric" className={inputClass} placeholder="eg. 60000"
             value={drafts.salaryMin} onChange={(e) => setDraft("salaryMin", e.target.value)} />
         </div>
+
         <div>
           <label htmlFor="filter-tags" className={labelClass}>Tags</label>
           <input id="filter-tags" type="text" className={inputClass} placeholder="eg. react, typescript"
             value={drafts.tags} onChange={(e) => setDraft("tags", e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="filter-sort" className={labelClass}>Sort by</label>
-          <select id="filter-sort" className={inputClass} value={filters.sort ?? "newest"}
-            onChange={(e) => setSelect("sort", e.target.value === "newest" ? "" : e.target.value)}>
-            {JOB_SORTS.map((sort) => <option key={sort} value={sort}>{SORT_LABELS[sort]}</option>)}
-          </select>
+          <p className="mt-1.5 text-xs text-slate-500">Jobs with every tag listed.</p>
         </div>
       </div>
     </form>
+  );
+};
+
+// Sort order, shown above the results. Lives in the URL like the filters.
+export const SortSelect = () => {
+  const [searchParams] = useSearchParams();
+  const updateSearchParams = useSearchParamsUpdater();
+  const sort = filtersFromSearchParams(searchParams).sort ?? "newest";
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor="filter-sort" className="shrink-0 text-xs font-medium text-slate-500">Sort by</label>
+      <select
+        id="filter-sort"
+        className={`${selectClass} h-9 w-44 bg-white`}
+        value={sort}
+        onChange={(e) =>
+          updateSearchParams((next) => {
+            if (e.target.value === "newest") next.delete("sort");
+            else next.set("sort", e.target.value);
+          })
+        }
+      >
+        {JOB_SORTS.map((option) => <option key={option} value={option}>{SORT_LABELS[option]}</option>)}
+      </select>
+    </div>
   );
 };
 

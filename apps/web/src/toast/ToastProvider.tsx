@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FaCheckCircle, FaExclamationCircle, FaTimes } from "react-icons/fa";
+import { LuCircleAlert, LuCircleCheck, LuX } from "react-icons/lu";
 import { ToastContext, type Toast, type ToastKind } from "./ToastContext";
 
 // How long a toast stays on screen, in milliseconds.
@@ -14,19 +14,23 @@ const ToastItem = ({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
   const isError = toast.kind === "error";
   return (
     <li
-      className={`flex items-start gap-3 rounded-lg shadow-lg px-4 py-3 text-white ${
-        isError ? "bg-red-600" : "bg-green-600"
+      className={`flex items-start gap-3 rounded-xl border bg-white px-4 py-3 text-sm text-slate-800 shadow-overlay ${
+        isError ? "border-rose-200" : "border-emerald-200"
       }`}
     >
-      {isError ? <FaExclamationCircle className="mt-1 shrink-0" aria-hidden /> : <FaCheckCircle className="mt-1 shrink-0" aria-hidden />}
+      {isError ? (
+        <LuCircleAlert className="mt-0.5 shrink-0 text-lg text-rose-600" aria-hidden />
+      ) : (
+        <LuCircleCheck className="mt-0.5 shrink-0 text-lg text-emerald-600" aria-hidden />
+      )}
       <p className="flex-1">{toast.message}</p>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 rounded p-1 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+        className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         aria-label="Dismiss notification"
       >
-        <FaTimes aria-hidden />
+        <LuX aria-hidden />
       </button>
     </li>
   );

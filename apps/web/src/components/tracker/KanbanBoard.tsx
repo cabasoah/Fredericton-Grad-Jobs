@@ -12,7 +12,7 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { FaGripVertical } from "react-icons/fa";
+import { LuCalendarClock, LuGripVertical } from "react-icons/lu";
 import {
   APPLICATION_STAGE_LABELS,
   APPLICATION_STAGES,
@@ -22,6 +22,8 @@ import {
 } from "@fredericton-grad-jobs/shared";
 import { columnCoordinateGetter } from "@/lib/kanbanKeyboard";
 import { formatRelativeTime } from "@/lib/formatRelativeTime";
+import { STAGE_STYLES } from "@/lib/stageStyles";
+import CompanyAvatar from "../CompanyAvatar";
 
 type KanbanBoardProps = {
   applications: Application[];
@@ -36,12 +38,19 @@ const stageOf = (id: UniqueIdentifier | undefined) => {
 
 const CardBody = ({ application }: { application: Application }) => (
   <>
-    <p className="font-semibold text-gray-900 leading-snug">{application.roleTitle}</p>
-    <p className="text-sm text-gray-600">{application.companyName}</p>
+    <div className="flex items-start gap-2.5">
+      <CompanyAvatar name={application.companyName} size="sm" />
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-slate-500">{application.companyName}</p>
+        <p className="text-sm font-semibold leading-snug text-slate-900">{application.roleTitle}</p>
+      </div>
+    </div>
     {application.nextFollowUpAt && (
-      <p className="text-xs text-indigo-700 mt-1">Follow up {application.nextFollowUpAt.slice(0, 10)}</p>
+      <p className="mt-2.5 inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+        <LuCalendarClock aria-hidden /> Follow up {application.nextFollowUpAt.slice(0, 10)}
+      </p>
     )}
-    <p className="text-xs text-gray-500 mt-1">Updated {formatRelativeTime(application.updatedAt)}</p>
+    <p className="mt-2 text-xs text-slate-400">Updated {formatRelativeTime(application.updatedAt)}</p>
   </>
 );
 
@@ -53,7 +62,7 @@ const Card = ({ application, onOpen }: { application: Application; onOpen: Kanba
   return (
     <li
       ref={setNodeRef}
-      className={`flex gap-1 bg-white rounded-lg shadow-sm border border-gray-200 ${isDragging ? "opacity-40" : ""}`}
+      className={`flex rounded-xl border border-slate-200 bg-white shadow-card transition hover:border-slate-300 hover:shadow-card-hover ${isDragging ? "opacity-40" : ""}`}
     >
       <button
         type="button"
@@ -61,15 +70,15 @@ const Card = ({ application, onOpen }: { application: Application; onOpen: Kanba
         {...attributes}
         {...listeners}
         aria-label={`Move ${application.roleTitle} at ${application.companyName}`}
-        className="px-1 text-gray-400 hover:text-gray-700 cursor-grab active:cursor-grabbing rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 touch-none"
+        className="px-1.5 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing rounded-l-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 touch-none"
       >
-        <FaGripVertical aria-hidden />
+        <LuGripVertical aria-hidden />
       </button>
       <button
         type="button"
         onClick={() => onOpen(application)}
         data-application-id={application.id}
-        className="flex-1 text-left p-3 pl-1 rounded-r-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="min-w-0 flex-1 rounded-r-xl p-3 pl-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <CardBody application={application} />
       </button>
@@ -92,15 +101,18 @@ const Column = ({
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`flex flex-col w-64 shrink-0 rounded-xl p-3 ${isOver ? "bg-indigo-100 ring-2 ring-indigo-400" : "bg-gray-100"}`}
+      className={`flex w-72 shrink-0 snap-start flex-col rounded-2xl border p-3 transition-colors ${
+        isOver ? "border-indigo-300 bg-indigo-50 ring-2 ring-indigo-400" : "border-slate-200 bg-slate-50/80"
+      }`}
     >
-      <h2 id={headingId} className="flex items-center justify-between font-bold text-gray-800 mb-3">
+      <h2 id={headingId} className="mb-3 flex items-center gap-2 px-1 text-sm font-semibold text-slate-800">
+        <span aria-hidden className={`h-2 w-2 rounded-full ${STAGE_STYLES[stage].dot}`} />
         {APPLICATION_STAGE_LABELS[stage]}
-        <span className="text-sm font-semibold text-gray-600 bg-white rounded-full px-2" aria-label={`${applications.length} applications`}>
+        <span className="ml-auto rounded-full border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600" aria-label={`${applications.length} applications`}>
           {applications.length}
         </span>
       </h2>
-      <ul className="flex flex-col gap-2 min-h-24">
+      <ul className="flex min-h-24 flex-col gap-2">
         {applications.map((application) => (
           <Card key={application.id} application={application} onOpen={onOpen} />
         ))}
@@ -161,7 +173,7 @@ const KanbanBoard = ({ applications, onMove, onOpen }: KanbanBoardProps) => {
       onDragCancel={() => setActiveId(null)}
       onDragEnd={onDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex snap-x gap-4 overflow-x-auto pb-4">
         {APPLICATION_STAGES.map((stage) => (
           <Column
             key={stage}
@@ -174,7 +186,7 @@ const KanbanBoard = ({ applications, onMove, onOpen }: KanbanBoardProps) => {
       {/* Rendered above everything, so the card is not clipped by the scrolling board. */}
       <DragOverlay>
         {active ? (
-          <div className="w-60 bg-white rounded-lg shadow-lg border border-indigo-300 p-3 rotate-2">
+          <div className="w-68 rotate-2 rounded-xl border border-indigo-300 bg-white p-3 shadow-overlay">
             <CardBody application={active} />
           </div>
         ) : null}

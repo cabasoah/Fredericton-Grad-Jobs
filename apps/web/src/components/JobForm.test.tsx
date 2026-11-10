@@ -31,12 +31,12 @@ const capturePosts = () => {
 };
 
 const fillRequired = async (user: ReturnType<typeof userEvent.setup>, title = "Data Analyst") => {
-  await user.type(await screen.findByLabelText("Job Listing Name"), title);
-  await user.type(screen.getByLabelText("Description"), "Turn data into decisions.");
+  await user.type(await screen.findByLabelText("Job title"), title);
+  await user.type(screen.getByLabelText("Job description"), "Turn data into decisions.");
   await user.type(screen.getByLabelText("Location"), "Fredericton, NB");
 };
 
-describe("JobForm (Add Job page)", () => {
+describe("JobForm (Post a job page)", () => {
   it("shows every validation problem and sends nothing when the input is invalid", async () => {
     server.use(signedInAs(employer));
     const bodies = capturePosts();
@@ -47,7 +47,7 @@ describe("JobForm (Add Job page)", () => {
     await fillRequired(user, "   ");
     await user.type(screen.getByLabelText("Minimum"), "90000");
     await user.type(screen.getByLabelText("Maximum"), "50000");
-    await user.click(screen.getByRole("button", { name: "Add Job" }));
+    await user.click(screen.getByRole("button", { name: "Publish job" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Please fix the following:");
@@ -58,7 +58,7 @@ describe("JobForm (Add Job page)", () => {
         "salaryMax: salaryMax must be greater than or equal to salaryMin",
       ]),
     );
-    expect(screen.getByRole("button", { name: "Add Job" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Publish job" })).toBeEnabled();
     expect(bodies).toEqual([]);
   });
 
@@ -69,14 +69,14 @@ describe("JobForm (Add Job page)", () => {
     renderAddJob();
 
     await fillRequired(user);
-    await user.selectOptions(screen.getByLabelText("Job Type"), "INTERNSHIP");
-    await user.selectOptions(screen.getByLabelText("Work Arrangement"), "HYBRID");
+    await user.selectOptions(screen.getByLabelText("Job type"), "INTERNSHIP");
+    await user.selectOptions(screen.getByLabelText("Work arrangement"), "HYBRID");
     await user.type(screen.getByLabelText("Minimum"), "50000");
     await user.type(screen.getByLabelText("Maximum"), "60000");
     await user.type(screen.getByLabelText("Tags"), " sql, , python ");
-    await user.type(screen.getByLabelText("Application Link"), "  https://acme.test/apply ");
-    expect(screen.getByText("Acme")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Add Job" }));
+    await user.type(screen.getByLabelText("Application link"), "  https://acme.test/apply ");
+    expect(within(screen.getByRole("complementary", { name: "Preview" })).getByText("Acme")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Publish job" }));
 
     expect(await screen.findByTestId("location")).toHaveTextContent("/jobs/job-new");
     expect(bodies).toEqual([
@@ -110,12 +110,12 @@ describe("JobForm (Add Job page)", () => {
     renderAddJob();
 
     await fillRequired(user);
-    await user.click(screen.getByRole("button", { name: "Add Job" }));
+    await user.click(screen.getByRole("button", { name: "Publish job" }));
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Request validation failed");
     expect(within(alert).getByRole("listitem")).toHaveTextContent("location: Location is not supported");
-    expect(screen.getByRole("button", { name: "Add Job" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Publish job" })).toBeEnabled();
     expect(screen.getByTestId("location")).toHaveTextContent("/add-job");
   });
 });

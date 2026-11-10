@@ -18,7 +18,7 @@ const RequireRole = ({ role, children }: RequireRoleProps) => {
 
   if (status === "loading") {
     return (
-      <p role="status" className="text-center text-gray-600 py-24 animate-pulse">
+      <p role="status" className="text-center text-sm text-slate-500 py-24 animate-pulse">
         Checking your account...
       </p>
     );

@@ -24,9 +24,9 @@ test("a job seeker searches with filters and opens a job", async ({ page }) => {
   // Filters live in the URL, so they survive a reload.
   await page.reload();
   await expect(page.getByLabel("Search jobs")).toHaveValue(token);
-  await expect(page.getByRole("link", { name: "Read More" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: `Junior Data Analyst ${token}`, exact: true })).toHaveCount(1);
 
-  await page.getByRole("link", { name: "Read More" }).click();
+  await page.getByRole("link", { name: `Junior Data Analyst ${token}`, exact: true }).click();
   await expect(page).toHaveURL(/\/jobs\/[^/?]+$/);
   await expect(page.getByRole("heading", { name: `Junior Data Analyst ${token}` })).toBeVisible();
   await expect(page.getByText(company).first()).toBeVisible();

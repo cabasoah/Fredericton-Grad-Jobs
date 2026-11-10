@@ -1,65 +1,101 @@
-import { useState } from "react"
-import {FaMapMarker} from "react-icons/fa"
 import { Link } from "react-router-dom";
-import { JOB_TYPE_LABELS, REMOTE_TYPE_LABELS, type Job } from "@fredericton-grad-jobs/shared";
+import { LuClock, LuMapPin } from "react-icons/lu";
+import type { Job } from "@fredericton-grad-jobs/shared";
 import { truncateDescription } from "@/lib/truncateDescription";
 import { formatSalary } from "@/lib/formatSalary";
+import { formatRelativeTime } from "@/lib/formatRelativeTime";
 import { descriptionText } from "@/lib/description";
+import { cardInteractive } from "@/lib/styles";
+import { JobTypeBadge, RemoteBadge, Tag } from "./Badge";
+import CompanyAvatar from "./CompanyAvatar";
 import SaveJobButton from "./SaveJobButton";
 
+// The fields the card shows; a full Job, or the post-a-job form's preview.
+export type JobCardData = Pick<
+  Job,
+  "title" | "description" | "type" | "remote" | "location" | "salaryMin" | "salaryMax" | "currency" | "tags" | "source"
+> & { id?: string; postedAt?: string; company: { name: string } };
+
 type JobListingProps = {
-    job: Job;
+  job: JobCardData;
+  // Preview mode (post-a-job form): no link and no save button.
+  preview?: boolean;
 };
 
-// Expanded cards stop here; the job page shows the full description.
-const EXPANDED_LENGTH = 500;
+const MAX_TAGS = 3;
 
-const JobListing = ({job}: JobListingProps) => {
-    const [showFullDescription, setShowFullDescription] = useState(false);
-    // Imported jobs have HTML descriptions; cards show plain text.
-    const text = descriptionText(job);
-    const preview = truncateDescription(text);
-    const isLong = preview.truncated;
-    const description = showFullDescription ? truncateDescription(text, EXPANDED_LENGTH).text : preview.text;
+const SOURCE_LABELS: Partial<Record<Job["source"], string>> = {
+  GREENHOUSE: "via Greenhouse",
+  LEVER: "via Lever",
+};
+
+// Job card. The title links to the job page, and the link covers the whole
+// card; the save button sits above it so it stays clickable.
+const JobListing = ({ job, preview = false }: JobListingProps) => {
+  // Imported jobs have HTML descriptions; cards show plain text.
+  const description = truncateDescription(descriptionText(job)).text;
+  const salary = formatSalary(job);
+  const extraTags = job.tags.length - MAX_TAGS;
+  const source = SOURCE_LABELS[job.source];
+
   return (
-     <div className="bg-white rounded-xl shadow-md relative">
-                    <div className="p-4">
-                        <div className="mb-6">
-                        <div className="text-gray-600 my-2">{JOB_TYPE_LABELS[job.type]} · {REMOTE_TYPE_LABELS[job.remote]}</div>
-                        <h3 className="text-xl font-bold">{job.title}</h3>
-                        </div>
+    <article className={`${preview ? "rounded-2xl border border-slate-200 bg-white shadow-card" : cardInteractive} relative flex h-full flex-col p-5`}>
+      <div className="flex items-start gap-3">
+        <CompanyAvatar name={job.company.name || "?"} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-slate-900">{job.company.name}</p>
+          <p className="flex items-center gap-1 truncate text-[13px] text-slate-500">
+            <LuMapPin aria-hidden className="shrink-0" />
+            <span className="truncate">{job.location}</span>
+          </p>
+        </div>
+        {!preview && job.id && <SaveJobButton jobId={job.id} jobTitle={job.title} variant="icon" />}
+      </div>
 
-                        <div className="mb-5">
-                            {description}
-                        </div>
-                        {isLong && (
-                            <button onClick={() => setShowFullDescription((prevState) => !prevState)} className="text-indigo-500 mb-5 hover:text-indigo-600">
-                                {showFullDescription ? "Less" : "More"}
-                            </button>
-                        )}
+      <h3 className="mt-4 text-base font-semibold leading-snug tracking-tight text-slate-900">
+        {preview || !job.id ? (
+          job.title
+        ) : (
+          <Link to={`/jobs/${job.id}`} className="after:absolute after:inset-0 after:rounded-2xl focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-indigo-500">
+            {job.title}
+          </Link>
+        )}
+      </h3>
 
-                        <h3 className="text-indigo-500 mb-2">{formatSalary(job)}</h3>
+      {description && <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600">{description}</p>}
 
-                        <div className="border border-gray-100 mb-5"></div>
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          <JobTypeBadge type={job.type} />
+          <RemoteBadge remote={job.remote} />
+        </div>
+        <p className={`ml-auto text-sm font-semibold ${salary === "Salary not listed" ? "font-normal text-slate-400" : "text-emerald-700"}`}>
+          {salary}
+        </p>
+      </div>
 
-                        <div className="flex flex-col lg:flex-row justify-between mb-4">
-                        <div className="text-orange-700 mb-3">
-                            <FaMapMarker className="inline mr-2 text-sm mb-1"/>
-                                {job.location}
-                        </div>
-                        <div className="flex gap-2">
-                        <SaveJobButton jobId={job.id} jobTitle={job.title} className="h-[36px]" />
-                        <Link
-                            to={`/jobs/${job.id}`}
-                            className="h-[36px] bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-center text-sm"
-                        >
-                        Read More
-                        </Link>
-                        </div>
-                        </div>
-                    </div>
-                </div>
-  )
-}
+      {job.tags.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Tags">
+          {job.tags.slice(0, MAX_TAGS).map((tag) => (
+            <li key={tag}><Tag>{tag}</Tag></li>
+          ))}
+          {extraTags > 0 && <li className="self-center text-xs text-slate-500">+{extraTags} more</li>}
+        </ul>
+      )}
 
-export default JobListing
+      <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-xs text-slate-500">
+        {job.postedAt ? (
+          <span className="flex items-center gap-1">
+            <LuClock aria-hidden />
+            Posted <time dateTime={job.postedAt}>{formatRelativeTime(job.postedAt)}</time>
+          </span>
+        ) : (
+          <span>Not posted yet</span>
+        )}
+        {source && <span>{source}</span>}
+      </div>
+    </article>
+  );
+};
+
+export default JobListing;

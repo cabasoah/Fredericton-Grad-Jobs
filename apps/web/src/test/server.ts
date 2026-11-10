@@ -14,5 +14,14 @@ export const signedInAs = (user: User | null) =>
     user ? HttpResponse.json({ user }) : apiError(401, "UNAUTHORIZED", "Not signed in"),
   );
 
+// GET /stats: the job counts shown on the home and jobs pages.
+const stats = http.get(apiUrl("/stats"), () =>
+  HttpResponse.json({
+    openJobs: 3,
+    openJobsBySource: { MANUAL: 1, GREENHOUSE: 1, LEVER: 1 },
+    lastSuccessfulIngestAt: null,
+  }),
+);
+
 // Default: nobody is signed in. Tests add the handlers they need.
-export const server = setupServer(signedInAs(null));
+export const server = setupServer(signedInAs(null), stats);

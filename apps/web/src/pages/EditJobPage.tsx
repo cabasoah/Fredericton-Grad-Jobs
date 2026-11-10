@@ -35,9 +35,9 @@ const EditJobPage = () => {
   return (
     <JobForm
       key={job.id}
-      heading="Edit Job"
-      submitLabel="Update Job"
-      submittingLabel="Updating Job..."
+      heading="Edit job"
+      submitLabel="Save changes"
+      submittingLabel="Saving..."
       companyName={job.company.name}
       initialJob={job}
       onSubmit={saveJob}
